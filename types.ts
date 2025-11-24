@@ -1,0 +1,49 @@
+export interface RawInvoice {
+  Vendor_Name: string;
+  VAT_ID: string;
+  Due_Date: Date | null;
+  Open_Amount: number;
+  Vendor_Email: string;
+  Account_Email: string;
+  Col_AF: string; // Filter Yes/No
+  Col_AH: string; // Filter Yes/No
+  Col_AJ: string; // Filter Yes/No
+  Col_AN: string; // Filter Yes/No
+  Col_BS: string; // Block Status
+  Business_Area: string;
+}
+
+export interface ProcessedInvoice extends RawInvoice {
+  id: string; // unique ID for React keys
+  VAT_ID_clean: string;
+  Vendor_Type: string;
+  Country: string;
+  Country_Type: 'Spain' | 'Foreign' | 'Unknown';
+  Status: 'Overdue' | 'Not Overdue';
+  Days_Overdue: number;
+  [key: string]: any;
+}
+
+export interface FilterState {
+  country: 'All' | 'Spain' | 'Foreign';
+  dateRange: [Date | null, Date | null];
+  applyYesFilter: boolean; // Col_AF, AH, AN
+  ajYesOnly: boolean; // Col_AJ
+  selectedVendorTypes: string[];
+  selectedBFPStatus: string[];
+  chartStatus: 'All Open' | 'Overdue Only' | 'Not Overdue Only';
+  vendorGroup: string; // "Top 20", "Specific Name", etc.
+  selectedVendor: string | null; // For drill-down
+}
+
+export const CONFIG = {
+  MAIN_SHEET: 'Outstanding Invoices IB',
+  REF_SHEET: 'VR CHECK_Special vendors list',
+  COUNTRY_SHEET: 'Vendors',
+  // Original indices: [0, 1, 4, 6, 29, 30, 31, 33, 35, 39]
+  MAIN_COLS_INDICES: [0, 1, 4, 6, 29, 30, 31, 33, 35, 39],
+  MAIN_COL_NAMES: [
+    'Vendor_Name', 'VAT_ID', 'Due_Date', 'Open_Amount',
+    'Vendor_Email', 'Account_Email', 'Col_AF', 'Col_AH', 'Col_AJ', 'Col_AN'
+  ]
+};
