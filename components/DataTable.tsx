@@ -49,7 +49,7 @@ const DataTable: React.FC<DataTableProps> = ({ data, title }) => {
           </button>
         </div>
         <div className="bg-slate-950 rounded-lg p-3 text-xs text-slate-400 font-mono h-24 overflow-y-auto break-all border border-slate-800">
-          {uniqueEmails.join(', ')}
+          {uniqueEmails.join('; ')}
         </div>
         <p className="text-xs text-slate-500 mt-2">
           {uniqueEmails.length} unique recipients ready for dispatch.
