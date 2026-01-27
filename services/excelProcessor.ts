@@ -36,8 +36,8 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
           const countryData = XLSX.utils.sheet_to_json<any[]>(countrySheet, { header: 1 });
           // Format: Vendor_TaxID (0), Country (6)
           countryData.forEach((row) => {
-            if (row[0] && row[6]) {
-              countryMap.set(String(row[0]).trim().toUpperCase(), String(row[6]));
+            if (row[0] && row[1]) {
+              countryMap.set(String(row[0]).trim().toUpperCase(), String(row[1]));
             }
           });
         }
