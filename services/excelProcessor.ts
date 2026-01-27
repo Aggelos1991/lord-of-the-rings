@@ -23,8 +23,8 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
           const refData = XLSX.utils.sheet_to_json<any[]>(refSheet, { header: 1 });
           // Format: Vendor_TaxID (0), Vendor_Category (5)
           refData.forEach((row) => {
-            if (row[0] && row[5]) {
-              vendorTypeMap.set(String(row[0]).trim().toUpperCase(), String(row[5]));
+            if (row[0] && row[6]) {
+              vendorTypeMap.set(String(row[0]).trim().toUpperCase(), String(row[6]));
             }
           });
         }
