@@ -19,7 +19,7 @@ export interface ProcessedInvoice extends RawInvoice {
   id: string; // unique ID for React keys
   Vendor_Type: string;
   Country: string;
-  Country_Type: 'Spain' | 'Foreign' | 'Unknown';
+  Country_Type: 'Spain' | 'Foreign';
   Status: 'Overdue' | 'Not Overdue';
   Days_Overdue: number;
 
@@ -31,7 +31,7 @@ export interface ProcessedInvoice extends RawInvoice {
 }
 
 export interface FilterState {
-  country: 'All' | 'Spain' | 'Foreign' | 'Unknown';
+  country: 'All' | 'Spain' | 'Foreign';
   dateRange: [Date | null, Date | null];
   vendorSearch: string; // Wildcard search for vendor name
   invoiceSearch: string; // Wildcard search for invoice number (table-level)

@@ -150,12 +150,10 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
             // Country lookup: try Column A (Code) first, then Column D (T.R.N.)
             const country = countryMapByCode.get(vatIdClean) || countryMapByTRN.get(vatIdClean) || "Unknown";
 
-            let countryType: 'Spain' | 'Foreign' | 'Unknown' = "Unknown";
+            let countryType: 'Spain' | 'Foreign' = "Foreign";
             const countryLower = country.toLowerCase().trim();
             if (countryLower === "spain" || countryLower === "españa" || countryLower === "es") {
               countryType = "Spain";
-            } else if (country !== "" && countryLower !== "unknown") {
-              countryType = "Foreign";
             }
 
             // Overdue Logic
