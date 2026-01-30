@@ -20,7 +20,8 @@ const VendorComms: React.FC<{ vendorName: string }> = ({ vendorName }) => {
   const [comments, setComments] = useState<VendorComment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [uploading, setUploading] = useState(false);
-  const [backendOnline, setBackendOnline] = useState(true);
+  const [backendOnline, setBackendOnline] = useState<boolean | null>(null);
+  const [retrying, setRetrying] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadFiles = async () => {
@@ -42,7 +43,15 @@ const VendorComms: React.FC<{ vendorName: string }> = ({ vendorName }) => {
     }
   };
 
+  const retryConnection = async () => {
+    setRetrying(true);
+    await loadFiles();
+    await loadComments();
+    setRetrying(false);
+  };
+
   useEffect(() => {
+    setBackendOnline(null);
     loadFiles();
     loadComments();
   }, [vendorName]);
@@ -97,12 +106,29 @@ const VendorComms: React.FC<{ vendorName: string }> = ({ vendorName }) => {
     return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  if (backendOnline === null) {
+    return (
+      <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 mt-4">
+        <p className="text-slate-400 text-sm text-center">Loading vendor communications...</p>
+      </div>
+    );
+  }
+
   if (!backendOnline) {
     return (
       <div className="bg-slate-800 border border-amber-700/50 rounded-xl p-4 mt-4">
-        <p className="text-amber-400 text-sm text-center">
-          ⚠️ Backend server not running. Start with <code className="bg-slate-900 px-2 py-0.5 rounded text-xs">npm run dev:server</code> to enable file uploads &amp; comments.
-        </p>
+        <div className="flex items-center justify-center gap-3">
+          <p className="text-amber-400 text-sm">
+            ⚠️ Cannot connect to the backend server.
+          </p>
+          <button
+            onClick={retryConnection}
+            disabled={retrying}
+            className="bg-amber-700 hover:bg-amber-600 disabled:bg-slate-600 text-white text-xs px-3 py-1 rounded transition-colors"
+          >
+            {retrying ? 'Retrying...' : 'Retry'}
+          </button>
+        </div>
       </div>
     );
   }
