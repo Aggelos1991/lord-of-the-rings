@@ -130,38 +130,55 @@ function App() {
       }
     }
 
-    return data.filter(item => {
+    // First pass: apply all filters EXCEPT vendor amount
+    let result = data.filter(item => {
       if (filterState.country !== 'All' && item.Country_Type !== filterState.country) return false;
       if (filterState.dateRange[0] && item.Due_Date < filterState.dateRange[0]) return false;
       if (filterState.dateRange[1] && item.Due_Date > filterState.dateRange[1]) return false;
 
       if (vendorSearchRegex && !vendorSearchRegex.test(item.Vendor_Name)) return false;
 
-      // Amount filter per invoice row
-      if (filterState.amountOperator !== 'all') {
-        const amt = item.Open_Amount;
-        if (filterState.amountOperator === '>=') {
-          const v = parseFloat(filterState.amountValue);
-          if (!isNaN(v) && amt < v) return false;
-        } else if (filterState.amountOperator === '<=') {
-          const v = parseFloat(filterState.amountValue);
-          if (!isNaN(v) && amt > v) return false;
-        } else if (filterState.amountOperator === '=') {
-          const v = parseFloat(filterState.amountValue);
-          if (!isNaN(v) && Math.abs(amt - v) > 0.01) return false;
-        } else if (filterState.amountOperator === 'between') {
-          const min = parseFloat(filterState.amountValueMin);
-          const max = parseFloat(filterState.amountValueMax);
-          if (!isNaN(min) && amt < min) return false;
-          if (!isNaN(max) && amt > max) return false;
-        }
-      }
-
       if (!filterState.selectedVendorTypes.includes(item.Vendor_Type)) return false;
       if (!filterState.selectedBFPStatus.includes(item.Col_BS)) return false;
 
       return true;
     });
+
+    // Second pass: vendor total amount filter
+    // Sum all invoices per vendor, then keep only vendors matching the amount condition
+    if (filterState.amountOperator !== 'all') {
+      // Build vendor totals
+      const vendorTotals: Record<string, number> = {};
+      result.forEach(item => {
+        vendorTotals[item.Vendor_Name] = (vendorTotals[item.Vendor_Name] || 0) + item.Open_Amount;
+      });
+
+      // Determine which vendors pass the amount filter
+      const passingVendors = new Set<string>();
+      for (const [vendor, total] of Object.entries(vendorTotals)) {
+        let passes = true;
+        if (filterState.amountOperator === '>=') {
+          const v = parseFloat(filterState.amountValue);
+          if (!isNaN(v) && total < v) passes = false;
+        } else if (filterState.amountOperator === '<=') {
+          const v = parseFloat(filterState.amountValue);
+          if (!isNaN(v) && total > v) passes = false;
+        } else if (filterState.amountOperator === '=') {
+          const v = parseFloat(filterState.amountValue);
+          if (!isNaN(v) && Math.abs(total - v) > 0.01) passes = false;
+        } else if (filterState.amountOperator === 'between') {
+          const min = parseFloat(filterState.amountValueMin);
+          const max = parseFloat(filterState.amountValueMax);
+          if (!isNaN(min) && total < min) passes = false;
+          if (!isNaN(max) && total > max) passes = false;
+        }
+        if (passes) passingVendors.add(vendor);
+      }
+
+      result = result.filter(item => passingVendors.has(item.Vendor_Name));
+    }
+
+    return result;
   }, [data, filterState]);
 
   // Determine which vendors are in the active Top N / specific vendor group

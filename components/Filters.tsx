@@ -108,7 +108,7 @@ const Filters: React.FC<FiltersProps> = ({
       {/* Amount Filter */}
       <div className="space-y-2">
         <label className="text-sm font-semibold text-slate-300 flex items-center gap-2">
-          <DollarSign size={16} /> Invoice Amount
+          <DollarSign size={16} /> Vendor Amount
         </label>
         <select
           className="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded p-2 focus:border-gold-500 outline-none"
