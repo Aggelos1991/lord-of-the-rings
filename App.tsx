@@ -201,7 +201,9 @@ function App() {
 
     let vendorNames = Object.keys(vendorTotals);
 
-    if (vendorGroup.startsWith('Top')) {
+    if (vendorGroup === 'All Vendors') {
+      // Show every vendor — no slicing
+    } else if (vendorGroup.startsWith('Top')) {
       const limit = parseInt(vendorGroup.split(' ')[1], 10);
       let sortKey: 'total' | 'overdue' | 'notOverdue' = 'total';
       if (chartStatus === 'Overdue Only') sortKey = 'overdue';
@@ -371,6 +373,7 @@ function App() {
                       value={filterState.vendorGroup}
                       onChange={(e) => setFilterState(prev => ({ ...prev, vendorGroup: e.target.value, selectedVendor: null }))}
                     >
+                      <option>All Vendors</option>
                       <option>Top 200</option>
                       <option>Top 100</option>
                       <option>Top 30</option>

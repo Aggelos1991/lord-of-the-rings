@@ -59,14 +59,15 @@ const InvoiceChart: React.FC<InvoiceChartProps> = ({
     let result = Object.values(grouped);
 
     // 2. Filter / Sort based on Selection
-    if (vendorGroup.startsWith("Top")) {
-      const limit = parseInt(vendorGroup.split(" ")[1], 10);
-      
-      // Sort key
-      let sortKey = 'Total';
-      if (statusFilter === 'Overdue Only') sortKey = 'Overdue';
-      if (statusFilter === 'Not Overdue Only') sortKey = 'NotOverdue';
+    let sortKey = 'Total';
+    if (statusFilter === 'Overdue Only') sortKey = 'Overdue';
+    if (statusFilter === 'Not Overdue Only') sortKey = 'NotOverdue';
 
+    if (vendorGroup === 'All Vendors') {
+      // Show all vendors sorted by amount
+      result = result.sort((a, b) => b[sortKey] - a[sortKey]);
+    } else if (vendorGroup.startsWith("Top")) {
+      const limit = parseInt(vendorGroup.split(" ")[1], 10);
       result = result.sort((a, b) => b[sortKey] - a[sortKey]).slice(0, limit);
     } else {
       // Specific Vendor selected in dropdown
