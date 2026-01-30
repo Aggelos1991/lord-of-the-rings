@@ -1,6 +1,6 @@
 import React from 'react';
 import { FilterState } from '../types';
-import { Filter, Calendar, Globe, AlertCircle, FileText, Search } from 'lucide-react';
+import { Filter, Calendar, Globe, AlertCircle, FileText, Search, DollarSign } from 'lucide-react';
 
 interface FiltersProps {
   filterState: FilterState;
@@ -103,6 +103,74 @@ const Filters: React.FC<FiltersProps> = ({
             }}
           />
         </div>
+      </div>
+
+      {/* Amount Filter */}
+      <div className="space-y-2">
+        <label className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+          <DollarSign size={16} /> Invoice Amount
+        </label>
+        <select
+          className="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded p-2 focus:border-gold-500 outline-none"
+          value={filterState.amountOperator}
+          onChange={(e) => setFilterState(prev => ({
+            ...prev,
+            amountOperator: e.target.value as any,
+            amountValue: '',
+            amountValueMin: '',
+            amountValueMax: '',
+          }))}
+        >
+          <option value="all">All Amounts</option>
+          <option value=">=">≥ Greater or Equal</option>
+          <option value="<=">≤ Less or Equal</option>
+          <option value="=">= Exactly</option>
+          <option value="between">Between (range)</option>
+        </select>
+
+        {filterState.amountOperator !== 'all' && filterState.amountOperator !== 'between' && (
+          <input
+            type="number"
+            placeholder="Enter amount (e.g. 10000)"
+            className="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded p-2 focus:border-gold-500 outline-none placeholder:text-slate-600"
+            value={filterState.amountValue}
+            onChange={(e) => setFilterState(prev => ({ ...prev, amountValue: e.target.value }))}
+          />
+        )}
+
+        {filterState.amountOperator === 'between' && (
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="number"
+              placeholder="Min"
+              className="bg-slate-900 border border-slate-700 text-white text-sm rounded p-2 focus:border-gold-500 outline-none placeholder:text-slate-600"
+              value={filterState.amountValueMin}
+              onChange={(e) => setFilterState(prev => ({ ...prev, amountValueMin: e.target.value }))}
+            />
+            <input
+              type="number"
+              placeholder="Max"
+              className="bg-slate-900 border border-slate-700 text-white text-sm rounded p-2 focus:border-gold-500 outline-none placeholder:text-slate-600"
+              value={filterState.amountValueMax}
+              onChange={(e) => setFilterState(prev => ({ ...prev, amountValueMax: e.target.value }))}
+            />
+          </div>
+        )}
+
+        {filterState.amountOperator !== 'all' && (
+          <button
+            onClick={() => setFilterState(prev => ({
+              ...prev,
+              amountOperator: 'all',
+              amountValue: '',
+              amountValueMin: '',
+              amountValueMax: '',
+            }))}
+            className="text-xs text-slate-500 hover:text-gold-500 transition-colors"
+          >
+            Clear amount filter
+          </button>
+        )}
       </div>
 
       <hr className="border-slate-700" />

@@ -35,6 +35,10 @@ export interface FilterState {
   dateRange: [Date | null, Date | null];
   vendorSearch: string; // Wildcard search for vendor name
   invoiceSearch: string; // Wildcard search for invoice number (table-level)
+  amountOperator: '>=' | '<=' | '=' | 'between' | 'all';
+  amountValue: string;       // single value for >=, <=, =
+  amountValueMin: string;    // min for "between"
+  amountValueMax: string;    // max for "between"
   selectedVendorTypes: string[];
   selectedBFPStatus: string[];
   chartStatus: 'All Open' | 'Overdue Only' | 'Not Overdue Only';

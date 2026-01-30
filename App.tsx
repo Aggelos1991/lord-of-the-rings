@@ -21,6 +21,10 @@ function App() {
     dateRange: [null, null],
     vendorSearch: '',
     invoiceSearch: '',
+    amountOperator: 'all',
+    amountValue: '',
+    amountValueMin: '',
+    amountValueMax: '',
     selectedVendorTypes: [],
     selectedBFPStatus: [],
     chartStatus: 'All Open',
@@ -132,6 +136,26 @@ function App() {
       if (filterState.dateRange[1] && item.Due_Date > filterState.dateRange[1]) return false;
 
       if (vendorSearchRegex && !vendorSearchRegex.test(item.Vendor_Name)) return false;
+
+      // Amount filter per invoice row
+      if (filterState.amountOperator !== 'all') {
+        const amt = item.Open_Amount;
+        if (filterState.amountOperator === '>=') {
+          const v = parseFloat(filterState.amountValue);
+          if (!isNaN(v) && amt < v) return false;
+        } else if (filterState.amountOperator === '<=') {
+          const v = parseFloat(filterState.amountValue);
+          if (!isNaN(v) && amt > v) return false;
+        } else if (filterState.amountOperator === '=') {
+          const v = parseFloat(filterState.amountValue);
+          if (!isNaN(v) && Math.abs(amt - v) > 0.01) return false;
+        } else if (filterState.amountOperator === 'between') {
+          const min = parseFloat(filterState.amountValueMin);
+          const max = parseFloat(filterState.amountValueMax);
+          if (!isNaN(min) && amt < min) return false;
+          if (!isNaN(max) && amt > max) return false;
+        }
+      }
 
       if (!filterState.selectedVendorTypes.includes(item.Vendor_Type)) return false;
       if (!filterState.selectedBFPStatus.includes(item.Col_BS)) return false;
