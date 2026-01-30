@@ -3,7 +3,11 @@ import multer from 'multer';
 import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
-import { getFiles, addFile, getFilePath, deleteFile, getComments, addComment, deleteComment } from './db';
+import { fileURLToPath } from 'url';
+import { getFiles, addFile, getFilePath, deleteFile, getComments, addComment, deleteComment } from './db.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = 3001;
