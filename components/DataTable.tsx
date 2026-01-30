@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { ProcessedInvoice } from '../types';
-import { Copy, Mail } from 'lucide-react';
+import { ProcessedInvoice, FilterState } from '../types';
+import { Copy, Mail, Search } from 'lucide-react';
 
 interface DataTableProps {
   data: ProcessedInvoice[];
   title: string;
+  filterState: FilterState;
+  setFilterState: React.Dispatch<React.SetStateAction<FilterState>>;
 }
 
-const DataTable: React.FC<DataTableProps> = ({ data, title }) => {
+const DataTable: React.FC<DataTableProps> = ({ data, title, filterState, setFilterState }) => {
   const [copied, setCopied] = useState(false);
 
   const uniqueEmails = Array.from(new Set(
@@ -58,9 +60,29 @@ const DataTable: React.FC<DataTableProps> = ({ data, title }) => {
 
       {/* TABLE SECTION */}
       <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg overflow-hidden">
-        <h3 className="text-white font-cinzel text-lg mb-4">
-          {title} ({data.length})
-        </h3>
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+          <h3 className="text-white font-cinzel text-lg">
+            {title} ({data.length})
+          </h3>
+          <div className="flex items-center gap-2">
+            <Search size={16} className="text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search Invoice # (e.g. 500* or *1234*)"
+              className="bg-slate-900 border border-slate-700 text-white text-sm rounded px-3 py-1.5 w-64 focus:border-gold-500 outline-none placeholder:text-slate-600"
+              value={filterState.invoiceSearch}
+              onChange={(e) => setFilterState(prev => ({ ...prev, invoiceSearch: e.target.value }))}
+            />
+            {filterState.invoiceSearch && (
+              <button
+                onClick={() => setFilterState(prev => ({ ...prev, invoiceSearch: '' }))}
+                className="text-xs text-slate-500 hover:text-gold-500 transition-colors"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-400">

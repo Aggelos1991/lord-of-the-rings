@@ -20,6 +20,7 @@ function App() {
     country: 'All',
     dateRange: [null, null],
     vendorSearch: '',
+    invoiceSearch: '',
     selectedVendorTypes: [],
     selectedBFPStatus: [],
     chartStatus: 'All Open',
@@ -195,8 +196,21 @@ function App() {
       res = res.filter(d => activeVendorNames.has(d.Vendor_Name));
     }
 
+    // Apply invoice number search (wildcard with *)
+    if (filterState.invoiceSearch.trim()) {
+      const escaped = filterState.invoiceSearch.trim()
+        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+        .replace(/\*/g, '.*');
+      try {
+        const invoiceRegex = new RegExp(escaped, 'i');
+        res = res.filter(d => invoiceRegex.test(d.Invoice_Number));
+      } catch {
+        // invalid regex, skip filter
+      }
+    }
+
     return res;
-  }, [filteredData, filterState.chartStatus, filterState.selectedVendor, activeVendorNames]);
+  }, [filteredData, filterState.chartStatus, filterState.selectedVendor, filterState.invoiceSearch, activeVendorNames]);
 
   // ================= RENDER ================= //
   return (
@@ -342,6 +356,8 @@ function App() {
               <DataTable
                 data={tableData}
                 title={filterState.selectedVendor ? `Invoices for ${filterState.selectedVendor}` : "Raw Invoice Ledger"}
+                filterState={filterState}
+                setFilterState={setFilterState}
               />
 
             </div>
