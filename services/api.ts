@@ -1,4 +1,4 @@
-const API_BASE = '/api';
+const API_BASE = 'http://46.62.134.239:3001/api';
 
 // === Types ===
 export interface VendorFile {

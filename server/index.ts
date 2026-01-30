@@ -1,44 +1,27 @@
 import express from 'express';
 import multer from 'multer';
 import cors from 'cors';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-import { getFiles, addFile, getFilePath, deleteFile, getComments, addComment, deleteComment } from './db.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { getFiles, addFile, getFileData, deleteFile, getComments, addComment, deleteComment } from './db.js';
 
 const app = express();
-const PORT = 3001;
-
-// Ensure uploads directory exists
-const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-}
+const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors({ origin: 'http://localhost:3000' }));
+app.use(cors());
 app.use(express.json());
 
-// Multer config for file uploads
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
-  filename: (_req, file, cb) => {
-    const timestamp = Date.now();
-    const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-    cb(null, `${timestamp}_${safeName}`);
-  },
+// Multer config — store in memory (we save to MySQL BLOB)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
-const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB limit
 
 // ===== FILE ROUTES =====
 
 // List files for a vendor
-app.get('/api/vendors/:vendorName/files', (req, res) => {
+app.get('/api/vendors/:vendorName/files', async (req, res) => {
   try {
-    const files = getFiles(decodeURIComponent(req.params.vendorName));
+    const files = await getFiles(decodeURIComponent(req.params.vendorName));
     res.json(files);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -46,16 +29,16 @@ app.get('/api/vendors/:vendorName/files', (req, res) => {
 });
 
 // Upload file for a vendor
-app.post('/api/vendors/:vendorName/files', upload.single('file'), (req, res) => {
+app.post('/api/vendors/:vendorName/files', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
     const vendorName = decodeURIComponent(req.params.vendorName);
-    const result = addFile(
+    const result = await addFile(
       vendorName,
       req.file.originalname,
-      req.file.path,
+      req.file.buffer,
       req.file.size,
       req.file.mimetype
     );
@@ -66,29 +49,24 @@ app.post('/api/vendors/:vendorName/files', upload.single('file'), (req, res) => 
 });
 
 // Download file
-app.get('/api/vendors/:vendorName/files/:fileId/download', (req, res) => {
+app.get('/api/vendors/:vendorName/files/:fileId/download', async (req, res) => {
   try {
-    const fileInfo = getFilePath(parseInt(req.params.fileId, 10));
+    const fileInfo = await getFileData(parseInt(req.params.fileId, 10));
     if (!fileInfo) {
       return res.status(404).json({ error: 'File not found' });
     }
-    if (!fs.existsSync(fileInfo.filepath)) {
-      return res.status(404).json({ error: 'File not found on disk' });
-    }
-    res.download(fileInfo.filepath, fileInfo.filename);
+    res.setHeader('Content-Disposition', `attachment; filename="${fileInfo.filename}"`);
+    res.setHeader('Content-Type', fileInfo.mime_type || 'application/octet-stream');
+    res.send(fileInfo.file_data);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
 // Delete file
-app.delete('/api/vendors/:vendorName/files/:fileId', (req, res) => {
+app.delete('/api/vendors/:vendorName/files/:fileId', async (req, res) => {
   try {
-    const filepath = deleteFile(parseInt(req.params.fileId, 10));
-    // Clean up file from disk
-    if (filepath && fs.existsSync(filepath)) {
-      fs.unlinkSync(filepath);
-    }
+    await deleteFile(parseInt(req.params.fileId, 10));
     res.json({ success: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -98,9 +76,9 @@ app.delete('/api/vendors/:vendorName/files/:fileId', (req, res) => {
 // ===== COMMENT ROUTES =====
 
 // List comments for a vendor
-app.get('/api/vendors/:vendorName/comments', (req, res) => {
+app.get('/api/vendors/:vendorName/comments', async (req, res) => {
   try {
-    const comments = getComments(decodeURIComponent(req.params.vendorName));
+    const comments = await getComments(decodeURIComponent(req.params.vendorName));
     res.json(comments);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -108,14 +86,14 @@ app.get('/api/vendors/:vendorName/comments', (req, res) => {
 });
 
 // Add comment for a vendor
-app.post('/api/vendors/:vendorName/comments', (req, res) => {
+app.post('/api/vendors/:vendorName/comments', async (req, res) => {
   try {
     const { comment } = req.body;
     if (!comment || !comment.trim()) {
       return res.status(400).json({ error: 'Comment cannot be empty' });
     }
     const vendorName = decodeURIComponent(req.params.vendorName);
-    const result = addComment(vendorName, comment.trim());
+    const result = await addComment(vendorName, comment.trim());
     res.status(201).json(result);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -123,9 +101,9 @@ app.post('/api/vendors/:vendorName/comments', (req, res) => {
 });
 
 // Delete comment
-app.delete('/api/vendors/:vendorName/comments/:commentId', (req, res) => {
+app.delete('/api/vendors/:vendorName/comments/:commentId', async (req, res) => {
   try {
-    deleteComment(parseInt(req.params.commentId, 10));
+    await deleteComment(parseInt(req.params.commentId, 10));
     res.json({ success: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -135,5 +113,5 @@ app.delete('/api/vendors/:vendorName/comments/:commentId', (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`\n  Vendor API server running on http://localhost:${PORT}`);
-  console.log(`  Uploads directory: ${UPLOADS_DIR}\n`);
+  console.log(`  Connected to MySQL database\n`);
 });
