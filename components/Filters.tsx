@@ -1,6 +1,6 @@
 import React from 'react';
 import { FilterState } from '../types';
-import { Filter, Calendar, Globe, AlertCircle, ShieldAlert, FileText } from 'lucide-react';
+import { Filter, Calendar, Globe, AlertCircle, FileText, Search } from 'lucide-react';
 
 interface FiltersProps {
   filterState: FilterState;
@@ -28,6 +28,28 @@ const Filters: React.FC<FiltersProps> = ({
       <div className="flex items-center gap-2 text-gold-500 mb-2">
         <Filter size={20} />
         <h2 className="text-xl font-cinzel font-bold">Filters</h2>
+      </div>
+
+      {/* Vendor Search */}
+      <div className="space-y-2">
+        <label className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+          <Search size={16} /> Vendor Search
+        </label>
+        <input
+          type="text"
+          placeholder="e.g. Telef* or *RENTING*"
+          className="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded p-2 focus:border-gold-500 outline-none placeholder:text-slate-600"
+          value={filterState.vendorSearch}
+          onChange={(e) => setFilterState(prev => ({ ...prev, vendorSearch: e.target.value }))}
+        />
+        {filterState.vendorSearch && (
+          <button
+            onClick={() => setFilterState(prev => ({ ...prev, vendorSearch: '' }))}
+            className="text-xs text-slate-500 hover:text-gold-500 transition-colors"
+          >
+            Clear search
+          </button>
+        )}
       </div>
 
       {/* Country Selection */}
@@ -85,34 +107,7 @@ const Filters: React.FC<FiltersProps> = ({
 
       <hr className="border-slate-700" />
 
-      {/* Advanced Flags */}
-      <div className="space-y-3">
-        <label className="text-sm font-semibold text-slate-300 flex items-center gap-2">
-          <ShieldAlert size={16} /> Payment Status
-        </label>
-        
-        <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer hover:text-white">
-          <input 
-            type="checkbox" 
-            className="w-4 h-4 rounded border-slate-600 text-gold-600 bg-slate-900 focus:ring-gold-500"
-            checked={filterState.applyYesFilter}
-            onChange={(e) => setFilterState(prev => ({ ...prev, applyYesFilter: e.target.checked }))}
-          />
-          Filter AF/AH/AN to 'Yes'
-        </label>
-        
-        <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer hover:text-white">
-          <input 
-            type="checkbox" 
-            className="w-4 h-4 rounded border-slate-600 text-gold-600 bg-slate-900 focus:ring-gold-500"
-            checked={filterState.ajYesOnly}
-            onChange={(e) => setFilterState(prev => ({ ...prev, ajYesOnly: e.target.checked }))}
-          />
-          Filter Col_AJ = 'Yes' Only
-        </label>
-      </div>
-
-      {/* Vendor Type Multi-Select (Simple simulated multi-select) */}
+      {/* Vendor Type Multi-Select */}
       <div className="space-y-2">
         <label className="text-sm font-semibold text-slate-300 flex items-center gap-2">
             <AlertCircle size={16} /> Vendor Types

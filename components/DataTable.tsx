@@ -67,6 +67,7 @@ const DataTable: React.FC<DataTableProps> = ({ data, title }) => {
             <thead className="bg-slate-900 text-slate-200 uppercase font-medium text-xs">
               <tr>
                 <th className="px-4 py-3">Vendor</th>
+                <th className="px-4 py-3">Invoice #</th>
                 <th className="px-4 py-3">Due Date</th>
                 <th className="px-4 py-3 text-right">Amount</th>
                 <th className="px-4 py-3">CN #</th>
@@ -75,7 +76,6 @@ const DataTable: React.FC<DataTableProps> = ({ data, title }) => {
                 <th className="px-4 py-3">Days</th>
                 <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3">BS</th>
-                <th className="px-4 py-3">Flags</th>
               </tr>
             </thead>
 
@@ -89,6 +89,10 @@ const DataTable: React.FC<DataTableProps> = ({ data, title }) => {
                 >
                   <td className="px-4 py-2 font-medium text-white truncate max-w-[200px]" title={row.Vendor_Name}>
                     {row.Vendor_Name}
+                  </td>
+
+                  <td className="px-4 py-2 font-mono text-xs text-slate-300 truncate max-w-[160px]" title={row.Invoice_Number}>
+                    {row.Invoice_Number || '-'}
                   </td>
 
                   <td className="px-4 py-2 whitespace-nowrap">
@@ -133,10 +137,6 @@ const DataTable: React.FC<DataTableProps> = ({ data, title }) => {
 
                   <td className="px-4 py-2 truncate max-w-[120px]" title={row.Col_BS}>
                     {row.Col_BS}
-                  </td>
-
-                  <td className="px-4 py-2 text-xs font-mono">
-                    {row.Col_AF[0]}/{row.Col_AH[0]}/{row.Col_AJ[0]}/{row.Col_AN[0]}
                   </td>
                 </tr>
               ))}

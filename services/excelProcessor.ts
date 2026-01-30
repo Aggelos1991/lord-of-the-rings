@@ -386,7 +386,7 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
         if (workbook.SheetNames.includes(CONFIG.REF_SHEET)) {
           const refSheet = workbook.Sheets[CONFIG.REF_SHEET];
           const refData = XLSX.utils.sheet_to_json<any[]>(refSheet, { header: 1 });
-          // Format: T.R.N. (0 = Column A), TYPE (6 = Column G)
+          // Format: Vendor_TaxID (col A = 0), Vendor_Category (col G = 6)
           refData.forEach((row) => {
             if (row[0] && row[6]) {
               vendorTypeMap.set(String(row[0]).trim().toUpperCase(), String(row[6]));
@@ -400,10 +400,10 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
         if (workbook.SheetNames.includes(CONFIG.COUNTRY_SHEET)) {
           const countrySheet = workbook.Sheets[CONFIG.COUNTRY_SHEET];
           const countryData = XLSX.utils.sheet_to_json<any[]>(countrySheet, { header: 1 });
-          // Format: T.R.N. (0 = Column A), Country (1 = Column B)
+          // Format: T.R.N. (col D = 3), Country (col G = 6)
           countryData.forEach((row) => {
-            if (row[0] && row[1]) {
-              countryMap.set(String(row[0]).trim().toUpperCase(), String(row[1]));
+            if (row[3] && row[6]) {
+              countryMap.set(String(row[3]).trim().toUpperCase(), String(row[6]));
             }
           });
         }
@@ -427,23 +427,8 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
             return;
         }
 
-        // Map Headers for dynamic BS/BA finding
-        const headerRow = mainData[headerRowIndex];
-        const colMap: Record<string, number> = {};
-        headerRow.forEach((cell, idx) => {
-            if (typeof cell === 'string') {
-                colMap[cell.trim().toUpperCase()] = idx;
-            }
-        });
-
-        // Heuristic BS/BA Index finding
-        let bsIdx = 50; // Default fallback
-        let baIdx = 51; // Default fallback
-        
-        Object.keys(colMap).forEach(key => {
-            if (key.includes("BS") && !key.includes("FUNC")) bsIdx = colMap[key];
-            if (key.includes("BA")) baIdx = colMap[key];
-        });
+        // Column BT = index 71 (Block Status: BFP / Free for Payment)
+        const btIdx = 71;
 
         // 5. Process Rows
         const processedRows: ProcessedInvoice[] = [];
@@ -484,13 +469,17 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
             // Normalize Strings
             const vatIdClean = vatId.trim().toUpperCase();
             
-            // Normalize BS
-            const rawBS = String(row[bsIdx] || '').trim().toUpperCase();
-            let bsStatus = "Other Block Status";
-            if (["", "OK", "FREE", "0", "FREE FOR PAYMENT", "0.0"].includes(rawBS)) {
-                bsStatus = "Free for Payment";
-            } else if (rawBS.includes("BLOCK") || ["1", "BFP", "1.0"].includes(rawBS)) {
+            // Normalize BT (Block Status)
+            const rawBT = String(row[btIdx] || '').trim();
+            let bsStatus: string;
+            const rawBTUpper = rawBT.toUpperCase();
+            if (rawBTUpper === 'BFP' || rawBTUpper.includes('BLOCK')) {
                 bsStatus = "Blocked for Payment";
+            } else if (rawBTUpper === '' || rawBTUpper === 'FREE FOR PAYMENT' || rawBTUpper === 'FREE' || rawBTUpper === 'OK') {
+                bsStatus = "Free for Payment";
+            } else {
+                // Show raw value as-is for any other status
+                bsStatus = rawBT;
             }
 
             // Normalize Yes/No Flags
@@ -503,6 +492,15 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
             const colAH = normalizeFlag(CONFIG.MAIN_COLS_INDICES[7]);
             const colAJ = normalizeFlag(CONFIG.MAIN_COLS_INDICES[8]);
             const colAN = normalizeFlag(CONFIG.MAIN_COLS_INDICES[9]);
+
+            // Hard-filter: only keep rows where AF, AH, AJ, AN are all "Yes"
+            if (colAF !== 'Yes' || colAH !== 'Yes' || colAJ !== 'Yes' || colAN !== 'Yes') continue;
+
+            // Hard-filter: only keep rows where AY (col index 50) = 0
+            const ayIdx = 50;
+            const rawAY = row[ayIdx];
+            const ayVal = typeof rawAY === 'number' ? rawAY : parseFloat(String(rawAY || ''));
+            if (isNaN(ayVal) || ayVal !== 0) continue;
 
             // Merges
             const vendorType = vendorTypeMap.get(vatIdClean) || "Uncategorized";
@@ -527,6 +525,7 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
                 VAT_ID_clean: vatIdClean,
                 Due_Date: dueDate,
                 Open_Amount: amountNum,
+                Invoice_Number: String(row[10] || ''), // Column K = index 10
                 Vendor_Email: String(row[CONFIG.MAIN_COLS_INDICES[4]] || ''),
                 Account_Email: String(row[CONFIG.MAIN_COLS_INDICES[5]] || ''),
                 Col_AF: colAF,
@@ -534,7 +533,7 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
                 Col_AJ: colAJ,
                 Col_AN: colAN,
                 Col_BS: bsStatus,
-                Business_Area: String(row[baIdx] || ''),
+                Business_Area: '',
                 Vendor_Type: vendorType,
                 Country: country,
                 Country_Type: countryType,

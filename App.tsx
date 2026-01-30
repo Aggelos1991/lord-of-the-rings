@@ -19,8 +19,7 @@ function App() {
   const [filterState, setFilterState] = useState<FilterState>({
     country: 'All',
     dateRange: [null, null],
-    applyYesFilter: true,
-    ajYesOnly: false,
+    vendorSearch: '',
     selectedVendorTypes: [],
     selectedBFPStatus: [],
     chartStatus: 'All Open',
@@ -113,15 +112,25 @@ function App() {
   const filteredData = useMemo(() => {
     if (data.length === 0) return [];
 
+    // Build wildcard regex from search string (supports * as wildcard)
+    let vendorSearchRegex: RegExp | null = null;
+    if (filterState.vendorSearch.trim()) {
+      const escaped = filterState.vendorSearch.trim()
+        .replace(/[.+^${}()|[\]\\]/g, '\\$&') // escape regex special chars except *
+        .replace(/\*/g, '.*'); // convert * to .*
+      try {
+        vendorSearchRegex = new RegExp(escaped, 'i');
+      } catch {
+        vendorSearchRegex = null;
+      }
+    }
+
     return data.filter(item => {
       if (filterState.country !== 'All' && item.Country_Type !== filterState.country) return false;
       if (filterState.dateRange[0] && item.Due_Date < filterState.dateRange[0]) return false;
       if (filterState.dateRange[1] && item.Due_Date > filterState.dateRange[1]) return false;
 
-      if (filterState.applyYesFilter) {
-        if (item.Col_AF !== 'Yes' || item.Col_AH !== 'Yes' || item.Col_AN !== 'Yes') return false;
-      }
-      if (filterState.ajYesOnly && item.Col_AJ !== 'Yes') return false;
+      if (vendorSearchRegex && !vendorSearchRegex.test(item.Vendor_Name)) return false;
 
       if (!filterState.selectedVendorTypes.includes(item.Vendor_Type)) return false;
       if (!filterState.selectedBFPStatus.includes(item.Col_BS)) return false;
@@ -130,21 +139,64 @@ function App() {
     });
   }, [data, filterState]);
 
+  // Determine which vendors are in the active Top N / specific vendor group
+  const activeVendorNames = useMemo(() => {
+    const { vendorGroup, chartStatus } = filterState;
+
+    // Group filtered data by vendor and sum amounts
+    const vendorTotals: Record<string, { total: number; overdue: number; notOverdue: number }> = {};
+    filteredData.forEach(d => {
+      if (!vendorTotals[d.Vendor_Name]) {
+        vendorTotals[d.Vendor_Name] = { total: 0, overdue: 0, notOverdue: 0 };
+      }
+      vendorTotals[d.Vendor_Name].total += d.Open_Amount;
+      if (d.Status === 'Overdue') {
+        vendorTotals[d.Vendor_Name].overdue += d.Open_Amount;
+      } else {
+        vendorTotals[d.Vendor_Name].notOverdue += d.Open_Amount;
+      }
+    });
+
+    let vendorNames = Object.keys(vendorTotals);
+
+    if (vendorGroup.startsWith('Top')) {
+      const limit = parseInt(vendorGroup.split(' ')[1], 10);
+      let sortKey: 'total' | 'overdue' | 'notOverdue' = 'total';
+      if (chartStatus === 'Overdue Only') sortKey = 'overdue';
+      if (chartStatus === 'Not Overdue Only') sortKey = 'notOverdue';
+
+      vendorNames = vendorNames
+        .sort((a, b) => vendorTotals[b][sortKey] - vendorTotals[a][sortKey])
+        .slice(0, limit);
+    } else {
+      // Specific vendor selected from dropdown
+      vendorNames = vendorNames.filter(n => n === vendorGroup);
+    }
+
+    return new Set(vendorNames);
+  }, [filteredData, filterState.vendorGroup, filterState.chartStatus]);
+
   const tableData = useMemo(() => {
     let res = filteredData;
 
+    // Apply status filter
     if (filterState.chartStatus === 'Overdue Only') {
       res = res.filter(d => d.Status === 'Overdue');
     } else if (filterState.chartStatus === 'Not Overdue Only') {
       res = res.filter(d => d.Status === 'Not Overdue');
     }
 
+    // Apply vendor group (Top N or specific vendor from dropdown)
     if (filterState.selectedVendor) {
+      // Bar click drill-down takes priority
       res = res.filter(d => d.Vendor_Name === filterState.selectedVendor);
+    } else {
+      // Otherwise limit to the same vendors shown in the chart
+      res = res.filter(d => activeVendorNames.has(d.Vendor_Name));
     }
 
     return res;
-  }, [filteredData, filterState.chartStatus, filterState.selectedVendor]);
+  }, [filteredData, filterState.chartStatus, filterState.selectedVendor, activeVendorNames]);
 
   // ================= RENDER ================= //
   return (

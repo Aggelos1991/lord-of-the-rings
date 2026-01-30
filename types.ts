@@ -368,6 +368,7 @@ export interface RawInvoice {
   VAT_ID_clean: string; // normalized VAT for matching
   Due_Date: Date | null;
   Open_Amount: number;
+  Invoice_Number: string; // Column K
   Vendor_Email: string;
   Account_Email: string;
   Col_AF: string; // Filter Yes/No
@@ -396,8 +397,7 @@ export interface ProcessedInvoice extends RawInvoice {
 export interface FilterState {
   country: 'All' | 'Spain' | 'Foreign';
   dateRange: [Date | null, Date | null];
-  applyYesFilter: boolean; // Col_AF, AH, AN
-  ajYesOnly: boolean; // Col_AJ
+  vendorSearch: string; // Wildcard search for vendor name
   selectedVendorTypes: string[];
   selectedBFPStatus: string[];
   chartStatus: 'All Open' | 'Overdue Only' | 'Not Overdue Only';
@@ -407,8 +407,8 @@ export interface FilterState {
 
 export const CONFIG = {
   MAIN_SHEET: 'Outstanding Invoices IB',
-  REF_SHEET: 'VR CHECK_Special vendors list',  // For Vendor Type (Column G) AND Country (Column B)
-  COUNTRY_SHEET: 'VR CHECK_Special vendors list', // Same sheet
+  REF_SHEET: 'VR CHECK_Special vendors list',
+  COUNTRY_SHEET: 'VENDOR LIST',
   MAIN_COLS_INDICES: [0, 1, 4, 6, 29, 30, 31, 33, 35, 39],
   MAIN_COL_NAMES: [
     'Vendor_Name', 'VAT_ID', 'Due_Date', 'Open_Amount',
