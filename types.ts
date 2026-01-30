@@ -46,6 +46,22 @@ export interface FilterState {
   selectedVendor: string | null; // For drill-down
 }
 
+export interface VendorFile {
+  id: number;
+  vendor_name: string;
+  filename: string;
+  file_size: number;
+  mime_type: string;
+  uploaded_at: string;
+}
+
+export interface VendorComment {
+  id: number;
+  vendor_name: string;
+  comment: string;
+  created_at: string;
+}
+
 export const CONFIG = {
   MAIN_SHEET: 'Outstanding Invoices IB',
   REF_SHEET: 'VR CHECK_Special vendors list',
