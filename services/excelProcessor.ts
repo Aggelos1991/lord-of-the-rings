@@ -31,15 +31,22 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
         }
 
         // 3. Load Country Data (from VENDOR LIST sheet)
-        // Column D = T.R.N. (key), Column G = Country (value)
-        const countryMap = new Map<string, string>();
+        // Primary key: Column A (Code), Fallback key: Column D (T.R.N.), Value: Column G (Country)
+        const countryMapByCode = new Map<string, string>();  // Col A -> Country
+        const countryMapByTRN = new Map<string, string>();   // Col D -> Country
         if (workbook.SheetNames.includes(CONFIG.COUNTRY_SHEET)) {
           const countrySheet = workbook.Sheets[CONFIG.COUNTRY_SHEET];
           const countryData = XLSX.utils.sheet_to_json<any[]>(countrySheet, { header: 1 });
-          // Format: T.R.N. (col D = 3), Country (col G = 6)
           countryData.forEach((row) => {
-            if (row[3] && row[6]) {
-              countryMap.set(String(row[3]).trim().toUpperCase(), String(row[6]));
+            const country = row[6] ? String(row[6]).trim() : '';
+            if (!country) return;
+            // Column A = Code (primary key)
+            if (row[0]) {
+              countryMapByCode.set(String(row[0]).trim().toUpperCase(), country);
+            }
+            // Column D = T.R.N. (fallback key)
+            if (row[3]) {
+              countryMapByTRN.set(String(row[3]).trim().toUpperCase(), country);
             }
           });
         }
@@ -140,7 +147,8 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
 
             // Merges
             const vendorType = vendorTypeMap.get(vatIdClean) || "Uncategorized";
-            const country = countryMap.get(vatIdClean) || "Unknown";
+            // Country lookup: try Column A (Code) first, then Column D (T.R.N.)
+            const country = countryMapByCode.get(vatIdClean) || countryMapByTRN.get(vatIdClean) || "Unknown";
 
             let countryType: 'Spain' | 'Foreign' | 'Unknown' = "Unknown";
             const countryLower = country.toLowerCase().trim();
