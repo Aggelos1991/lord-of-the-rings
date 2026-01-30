@@ -31,7 +31,7 @@ export interface ProcessedInvoice extends RawInvoice {
 }
 
 export interface FilterState {
-  country: 'All' | 'Spain' | 'Foreign';
+  country: 'All' | 'Spain' | 'Foreign' | 'Unknown';
   dateRange: [Date | null, Date | null];
   vendorSearch: string; // Wildcard search for vendor name
   invoiceSearch: string; // Wildcard search for invoice number (table-level)

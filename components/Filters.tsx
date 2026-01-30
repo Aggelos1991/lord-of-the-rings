@@ -58,7 +58,7 @@ const Filters: React.FC<FiltersProps> = ({
           <Globe size={16} /> Country Group
         </label>
         <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700">
-          {['All', 'Spain', 'Foreign'].map((opt) => (
+          {['All', 'Spain', 'Foreign', 'Unknown'].map((opt) => (
             <button
               key={opt}
               onClick={() => setFilterState(prev => ({ ...prev, country: opt as any }))}
