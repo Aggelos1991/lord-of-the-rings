@@ -255,7 +255,6 @@ Do NOT include a subject line, only the email body. Do not invent additional dat
                 <th className="px-4 py-3">PO Number</th>
                 <th className="px-4 py-3">Vendor</th>
                 <th className="px-4 py-3">Created By</th>
-                <th className="px-4 py-3">Email</th>
                 <th className="px-4 py-3">Doc #</th>
                 <th className="px-4 py-3 text-center">Action</th>
               </tr>
@@ -271,9 +270,6 @@ Do NOT include a subject line, only the email body. Do not invent additional dat
                   </td>
                   <td className="px-4 py-2 text-emerald-300 truncate max-w-[150px]" title={po.createdBy}>
                     {po.createdBy || '-'}
-                  </td>
-                  <td className="px-4 py-2 text-blue-300 truncate max-w-[180px]" title={po.email}>
-                    {po.email || '-'}
                   </td>
                   <td className="px-4 py-2 font-mono text-xs text-slate-300 truncate max-w-[120px]" title={po.documentNumber}>
                     {po.documentNumber || '-'}
