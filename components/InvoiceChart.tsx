@@ -110,9 +110,12 @@ const InvoiceChart: React.FC<InvoiceChartProps> = ({
     }
   };
 
-  // Calculate dynamic height based on number of items to prevent label overlap
-  // 40px per item gives enough breathing room for labels
-  const dynamicHeight = Math.max(500, chartData.length * 40);
+  // Calculate dynamic height: 55px per bar for clean spacing
+  const dynamicHeight = Math.max(500, chartData.length * 55);
+
+  // Truncate long vendor names for the Y-axis
+  const truncateName = (name: string, max: number) =>
+    name.length > max ? name.slice(0, max) + '…' : name;
 
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-lg flex flex-col">
@@ -120,7 +123,7 @@ const InvoiceChart: React.FC<InvoiceChartProps> = ({
         <h3 className="text-white font-cinzel text-lg">Vendor Balances</h3>
         <span className="text-xs text-slate-400 italic">Click a bar to filter details below</span>
       </div>
-      
+
       {/* Scrollable container for the chart */}
       <div className="w-full overflow-y-auto overflow-x-hidden max-h-[800px] pr-2 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
         <div style={{ height: `${dynamicHeight}px`, width: '100%' }}>
@@ -128,29 +131,31 @@ const InvoiceChart: React.FC<InvoiceChartProps> = ({
             <BarChart
               layout="vertical"
               data={chartData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              margin={{ top: 20, right: 30, left: 10, bottom: 5 }}
               onClick={handleClick}
               cursor="pointer"
-              barSize={20}
+              barSize={18}
+              barCategoryGap="25%"
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-              <XAxis 
-                type="number" 
-                stroke="#94a3b8" 
-                tickFormatter={(val) => `€${(val/1000).toFixed(0)}k`} 
+              <XAxis
+                type="number"
+                stroke="#94a3b8"
+                tickFormatter={(val) => `€${(val/1000).toFixed(0)}k`}
                 orientation="top"
               />
-              <YAxis 
-                  type="category" 
-                  dataKey="name" 
-                  stroke="#94a3b8" 
-                  width={150} 
-                  tick={{fontSize: 11, fill: '#cbd5e1'}}
+              <YAxis
+                  type="category"
+                  dataKey="name"
+                  stroke="#94a3b8"
+                  width={180}
+                  tick={{ fontSize: 10, fill: '#cbd5e1' }}
                   interval={0}
+                  tickFormatter={(name) => truncateName(name, 28)}
               />
-              <Tooltip 
-                content={<CustomTooltip />} 
-                cursor={{fill: 'rgba(255,255,255,0.05)'}} 
+              <Tooltip
+                content={<CustomTooltip />}
+                cursor={{fill: 'rgba(255,255,255,0.05)'}}
                 wrapperStyle={{ zIndex: 100 }}
               />
               <Legend verticalAlign="top" height={36}/>
