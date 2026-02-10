@@ -5,6 +5,7 @@ export interface RawInvoice {
   Entity: string; // Column C
   Due_Date: Date | null;
   Open_Amount: number;
+  Document_Number: string; // Column F — used for PO matching
   Invoice_Number: string; // Column K
   Vendor_Email: string;
   Account_Email: string;
@@ -48,6 +49,12 @@ export interface FilterState {
   selectedVendor: string | null; // For drill-down
   altDocDateYear: 'All' | '2025' | '2026' | 'Old'; // Filter by Alternative Document Date year (Col Y)
   debitBalanceOnly: boolean; // Show only vendors with negative Open_Amount (Col G)
+}
+
+export interface POUserRecord {
+  documentNumber: string; // Column Q in PO file
+  createdBy: string;      // Column F in PO file (PO Owner)
+  email: string;          // Column L in PO file
 }
 
 export interface VendorFile {

@@ -106,6 +106,9 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
             // Extract Entity (Column C = index 2)
             const entity = String(row[2] || '').trim();
 
+            // Extract Document Number (Column F = index 5) for PO matching
+            const documentNumber = String(row[5] || '').trim();
+
             // Validation
             if (!rawDueDate || (openAmount === undefined || openAmount === null || openAmount === '')) { skip.noDateAmt++; continue; }
             const amountNum = typeof openAmount === 'number' ? openAmount : parseFloat(openAmount);
@@ -190,6 +193,7 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
                 VAT_ID: vatId,
                 VAT_ID_clean: vatIdClean,
                 Entity: entity,
+                Document_Number: documentNumber,
                 Due_Date: dueDate,
                 Open_Amount: amountNum,
                 Invoice_Number: String(row[10] || ''), // Column K = index 10

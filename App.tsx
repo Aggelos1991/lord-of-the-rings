@@ -1,18 +1,22 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { UploadCloud, FileSpreadsheet } from 'lucide-react';
-import { ProcessedInvoice, FilterState } from './types';
+import { UploadCloud, FileSpreadsheet, Users } from 'lucide-react';
+import { ProcessedInvoice, FilterState, POUserRecord } from './types';
 import { processExcelFile } from './services/excelProcessor';
+import { processPOFile } from './services/poProcessor';
 import KPIGrid from './components/KPIGrid';
 import Filters from './components/Filters';
 import InvoiceChart from './components/InvoiceChart';
 import DataTable from './components/DataTable';
 import EmailGenerator from './components/EmailGenerator';
+import POEmailGenerator from './components/POEmailGenerator';
 
 function App() {
   const [rawFiles, setRawFiles] = useState<File | null>(null);
   const [data, setData] = useState<ProcessedInvoice[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [poMap, setPOMap] = useState<Map<string, POUserRecord>>(new Map());
+  const [poFileName, setPOFileName] = useState<string | null>(null);
 
   const [filterState, setFilterState] = useState<FilterState>({
     country: 'All',
@@ -68,6 +72,20 @@ function App() {
       setError("Failed to process Master Ledger file.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ========== UPLOAD PO USERS FILE ========== //
+  const handlePOUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const map = await processPOFile(file);
+      setPOMap(map);
+      setPOFileName(file.name);
+    } catch (err: any) {
+      console.error(err);
+      setError("Failed to process PO Users file.");
     }
   };
 
@@ -257,6 +275,26 @@ function App() {
               </button>
             </div>
 
+            {/* Upload PO Users */}
+            {data.length > 0 && (
+              <div className="relative group">
+                <input
+                  type="file"
+                  onChange={handlePOUpload}
+                  accept=".xlsx, .xls"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <button className={`flex items-center gap-2 px-5 py-2 rounded-full border transition-all duration-300 text-sm ${
+                  poFileName
+                    ? 'bg-slate-800 border-emerald-500 text-emerald-400'
+                    : 'bg-slate-800 border-slate-600 text-slate-300 hover:border-emerald-500 hover:text-emerald-400'
+                }`}>
+                  <Users size={16} />
+                  <span className="font-bold">{poFileName ? "PO Loaded" : "Upload PO Users"}</span>
+                </button>
+              </div>
+            )}
+
           </div>
 
         </div>
@@ -353,6 +391,7 @@ function App() {
                 title={filterState.selectedVendor ? `Invoices for ${filterState.selectedVendor}` : "Raw Invoice Ledger"}
                 filterState={filterState}
                 setFilterState={setFilterState}
+                poMap={poMap}
               />
 
             </div>
@@ -365,6 +404,15 @@ function App() {
       {data.length > 0 && (
         <EmailGenerator
           data={tableData}
+          vendorName={filterState.selectedVendor}
+        />
+      )}
+
+      {/* PO Email Generator - floating button + modal */}
+      {data.length > 0 && poMap.size > 0 && (
+        <POEmailGenerator
+          data={tableData}
+          poMap={poMap}
           vendorName={filterState.selectedVendor}
         />
       )}

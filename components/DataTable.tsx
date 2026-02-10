@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ProcessedInvoice, FilterState, VendorFile, VendorComment } from '../types';
+import { ProcessedInvoice, FilterState, VendorFile, VendorComment, POUserRecord } from '../types';
 import { Copy, Mail, Search, Upload, Download, Trash2, MessageSquare, Paperclip, Send } from 'lucide-react';
 import {
   fetchVendorFiles, uploadVendorFile, downloadVendorFile, deleteVendorFile,
@@ -11,6 +11,7 @@ interface DataTableProps {
   title: string;
   filterState: FilterState;
   setFilterState: React.Dispatch<React.SetStateAction<FilterState>>;
+  poMap?: Map<string, POUserRecord>;
 }
 
 // ===== Vendor Communications Panel =====
@@ -265,7 +266,8 @@ const VendorComms: React.FC<{ vendorName: string }> = ({ vendorName }) => {
 };
 
 // ===== Main DataTable Component =====
-const DataTable: React.FC<DataTableProps> = ({ data, title, filterState, setFilterState }) => {
+const DataTable: React.FC<DataTableProps> = ({ data, title, filterState, setFilterState, poMap }) => {
+  const hasPO = poMap && poMap.size > 0;
   const [copied, setCopied] = useState(false);
 
   const uniqueEmails = Array.from(new Set(
@@ -359,6 +361,7 @@ const DataTable: React.FC<DataTableProps> = ({ data, title, filterState, setFilt
                 <th className="px-4 py-3">Days</th>
                 <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3">BS</th>
+                {hasPO && <th className="px-4 py-3">PO Owner</th>}
               </tr>
             </thead>
 
@@ -419,6 +422,14 @@ const DataTable: React.FC<DataTableProps> = ({ data, title, filterState, setFilt
                   <td className="px-4 py-2 truncate max-w-[120px]" title={row.Col_BS}>
                     {row.Col_BS}
                   </td>
+                  {hasPO && (() => {
+                    const po = poMap!.get(row.Document_Number);
+                    return (
+                      <td className="px-4 py-2 truncate max-w-[140px] text-emerald-300" title={po ? `${po.createdBy} (${po.email})` : ''}>
+                        {po?.createdBy || '-'}
+                      </td>
+                    );
+                  })()}
                 </tr>
               ))}
             </tbody>
