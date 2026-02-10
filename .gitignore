@@ -18,6 +18,10 @@ server/database.sqlite-wal
 server/database.sqlite-shm
 uploads/
 
+# Environment variables
+.env
+.env.*
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

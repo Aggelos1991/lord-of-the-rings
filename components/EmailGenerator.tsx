@@ -8,9 +8,10 @@ interface EmailGeneratorProps {
 }
 
 const EmailGenerator: React.FC<EmailGeneratorProps> = ({ data, vendorName }) => {
+  const envKey = import.meta.env.VITE_ANTHROPIC_API_KEY || '';
   const [open, setOpen] = useState(false);
   const [language, setLanguage] = useState<'english' | 'spanish' | null>(null);
-  const [apiKey, setApiKey] = useState('');
+  const [apiKey, setApiKey] = useState(envKey);
   const [emailBody, setEmailBody] = useState('');
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -163,14 +164,22 @@ Do NOT include a subject line, only the email body. Do not invent additional dat
                 <label className="text-sm font-semibold text-slate-300 flex items-center gap-2">
                   <Key size={14} /> Anthropic API Key
                 </label>
-                <input
-                  type="password"
-                  placeholder="sk-ant-..."
-                  className="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded-lg p-2.5 focus:border-gold-500 outline-none placeholder:text-slate-600 font-mono"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                />
-                <p className="text-xs text-slate-500">Key is stored in browser memory only, never saved or sent anywhere except Anthropic's API.</p>
+                {envKey ? (
+                  <div className="flex items-center gap-2 bg-green-900/20 border border-green-600 text-green-300 text-sm rounded-lg p-2.5">
+                    <span>API key loaded from environment</span>
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      type="password"
+                      placeholder="sk-ant-..."
+                      className="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded-lg p-2.5 focus:border-gold-500 outline-none placeholder:text-slate-600 font-mono"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                    />
+                    <p className="text-xs text-slate-500">Key is stored in browser memory only, never saved or sent anywhere except Anthropic's API.</p>
+                  </>
+                )}
               </div>
 
               {/* Context Info */}
