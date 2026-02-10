@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ProcessedInvoice, POUserRecord } from '../types';
-import { UserCheck, Copy, X, Globe, Mail, Send } from 'lucide-react';
+import { UserCheck, Copy, X, Globe, Mail, Send, Search } from 'lucide-react';
 
 interface POTableProps {
   poRecords: POUserRecord[];
@@ -11,6 +11,7 @@ interface POTableProps {
 const POTable: React.FC<POTableProps> = ({ poRecords, invoiceData, vendorName }) => {
   const envKey = import.meta.env.VITE_ANTHROPIC_API_KEY || '';
   const [apiKey] = useState(envKey);
+  const [poSearch, setPOSearch] = useState('');
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [selectedPO, setSelectedPO] = useState<POUserRecord | null>(null);
   const [emailBody, setEmailBody] = useState('');
@@ -51,6 +52,26 @@ const POTable: React.FC<POTableProps> = ({ poRecords, invoiceData, vendorName })
     });
     return Array.from(map.values()).sort((a, b) => b.pos.length - a.pos.length);
   }, [matchedPOs]);
+
+  // Filter POs by search term (supports * wildcard)
+  const filteredPOs = useMemo(() => {
+    if (!poSearch.trim()) return matchedPOs;
+    const escaped = poSearch.trim()
+      .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+      .replace(/\*/g, '.*');
+    try {
+      const regex = new RegExp(escaped, 'i');
+      return matchedPOs.filter(po =>
+        regex.test(po.poNumber) ||
+        regex.test(po.vendorName) ||
+        regex.test(po.createdBy) ||
+        regex.test(po.email) ||
+        regex.test(po.documentNumber)
+      );
+    } catch {
+      return matchedPOs;
+    }
+  }, [matchedPOs, poSearch]);
 
   const openEmailModal = (po: POUserRecord) => {
     setSelectedPO(po);
@@ -205,8 +226,26 @@ Do NOT include a subject line, only the email body. Do not invent additional dat
         <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
           <h3 className="text-white font-cinzel text-lg flex items-center gap-2">
             <UserCheck size={20} className="text-emerald-400" />
-            PO Users ({matchedPOs.length} records)
+            PO Users ({filteredPOs.length}{filteredPOs.length !== matchedPOs.length ? ` / ${matchedPOs.length}` : ''} records)
           </h3>
+          <div className="flex items-center gap-2">
+            <Search size={16} className="text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search PO (e.g. 450* or *john*)"
+              className="bg-slate-900 border border-slate-700 text-white text-sm rounded px-3 py-1.5 w-64 focus:border-emerald-500 outline-none placeholder:text-slate-600"
+              value={poSearch}
+              onChange={(e) => setPOSearch(e.target.value)}
+            />
+            {poSearch && (
+              <button
+                onClick={() => setPOSearch('')}
+                className="text-xs text-slate-500 hover:text-emerald-400 transition-colors"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -222,7 +261,7 @@ Do NOT include a subject line, only the email body. Do not invent additional dat
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700">
-              {matchedPOs.slice(0, 100).map((po, idx) => (
+              {filteredPOs.slice(0, 100).map((po, idx) => (
                 <tr key={`po-${idx}`} className="hover:bg-slate-700/50 transition-colors">
                   <td className="px-4 py-2 font-mono text-xs text-slate-300">
                     {po.poNumber || '-'}
@@ -254,9 +293,9 @@ Do NOT include a subject line, only the email body. Do not invent additional dat
           </table>
         </div>
 
-        {matchedPOs.length > 100 && (
+        {filteredPOs.length > 100 && (
           <div className="text-center text-xs text-slate-500 mt-4 italic">
-            Showing first 100 of {matchedPOs.length} PO records.
+            Showing first 100 of {filteredPOs.length} PO records.
           </div>
         )}
       </div>
