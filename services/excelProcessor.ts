@@ -80,18 +80,23 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
 
         const badPatterns = /total|saldo|asiento|header|proveedor|unnamed|vendor|facturas|periodo|sum|importe|grand total/i;
 
+        // DEBUG counters
+        const skip = { empty: 0, badName: 0, onyx: 0, noDateAmt: 0, badAmt: 0, badDate: 0, flags: 0, ay: 0 };
+        let totalRows = 0;
+
         for (let i = headerRowIndex + 1; i < mainData.length; i++) {
             const row = mainData[i];
-            if (!row || row.length === 0) continue;
+            if (!row || row.length === 0) { skip.empty++; continue; }
+            totalRows++;
 
             const vendorName = row[CONFIG.MAIN_COLS_INDICES[0]];
 
             // Skip invalid rows based on vendor name check
-            if (!vendorName || badPatterns.test(String(vendorName))) continue;
+            if (!vendorName || badPatterns.test(String(vendorName))) { skip.badName++; continue; }
 
             // Hard-filter: skip rows where Column L (index 11) contains "Onyx"
             const colLVal = String(row[11] || '').trim();
-            if (colLVal.toLowerCase().includes('onyx')) continue;
+            if (colLVal.toLowerCase().includes('onyx')) { skip.onyx++; continue; }
 
             // Extract core fields
             const rawDueDate = row[CONFIG.MAIN_COLS_INDICES[2]];
@@ -99,9 +104,9 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
             const vatId = String(row[CONFIG.MAIN_COLS_INDICES[1]] || '');
 
             // Validation
-            if (!rawDueDate || !openAmount) continue;
+            if (!rawDueDate || !openAmount) { skip.noDateAmt++; continue; }
             const amountNum = typeof openAmount === 'number' ? openAmount : parseFloat(openAmount);
-            if (isNaN(amountNum) || amountNum <= 0) continue;
+            if (isNaN(amountNum) || amountNum <= 0) { skip.badAmt++; continue; }
 
             // Date Parsing
             let dueDate: Date;
@@ -111,7 +116,7 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
                 // Handle potential string dates if cellDates:true failed or mixed types
                 dueDate = new Date(rawDueDate);
             }
-            if (isNaN(dueDate.getTime())) continue; // Skip invalid dates
+            if (isNaN(dueDate.getTime())) { skip.badDate++; continue; } // Skip invalid dates
 
             // Normalize Strings
             const vatIdClean = vatId.trim().toUpperCase();
@@ -139,13 +144,13 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
             const colAH = normalizeFlag(CONFIG.MAIN_COLS_INDICES[7]);
             const colAJ = normalizeFlag(CONFIG.MAIN_COLS_INDICES[8]);
             // Hard-filter: only keep rows where AF, AH, AJ are all "Yes"
-            if (colAF !== 'Yes' || colAH !== 'Yes' || colAJ !== 'Yes') continue;
+            if (colAF !== 'Yes' || colAH !== 'Yes' || colAJ !== 'Yes') { skip.flags++; continue; }
 
             // Hard-filter: only keep rows where AY (col index 50) = 0
             const ayIdx = 50;
             const rawAY = row[ayIdx];
             const ayVal = typeof rawAY === 'number' ? rawAY : parseFloat(String(rawAY || ''));
-            if (isNaN(ayVal) || ayVal !== 0) continue;
+            if (isNaN(ayVal) || ayVal !== 0) { skip.ay++; continue; }
 
             // Column Y = index 24 (Alternative Document Date)
             const rawAltDocDate = row[24];
@@ -199,6 +204,23 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
                 Status: isOverdue ? 'Overdue' : 'Not Overdue',
                 Days_Overdue: daysOverdue,
             });
+        }
+
+        console.log('=== EXCEL PROCESSOR DEBUG ===');
+        console.log('Sheets found:', workbook.SheetNames);
+        console.log('Header row index:', headerRowIndex);
+        console.log('Total data rows:', totalRows);
+        console.log('Skipped:', skip);
+        console.log('Rows passed all filters:', processedRows.length);
+        if (totalRows > 0 && processedRows.length === 0) {
+          // Log first 3 data rows for inspection
+          for (let d = headerRowIndex + 1; d < Math.min(headerRowIndex + 4, mainData.length); d++) {
+            const r = mainData[d];
+            if (r) console.log(`Sample row ${d}:`, {
+              colA: r[0], colB: r[1], colE: r[4], colG: r[6],
+              colK: r[10], colL: r[11], colAF: r[31], colAH: r[33], colAJ: r[35], colAY: r[50], colBT: r[71]
+            });
+          }
         }
 
         resolve(processedRows);
