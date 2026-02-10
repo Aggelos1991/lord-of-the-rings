@@ -105,8 +105,10 @@ const POTable: React.FC<POTableProps> = ({ poRecords, invoiceData, vendorName })
     // Find all POs from the same owner
     const ownerPOs = matchedPOs.filter(p => p.createdBy.toLowerCase() === selectedPO.createdBy.toLowerCase());
 
-    // Find blocked invoices from the invoice data matching these PO vendors
-    const relatedInvoices = invoiceData.filter(inv => {
+    // Find ONLY blocked invoices from the invoice data matching these PO vendors
+    const blockedInvoices = invoiceData.filter(inv => {
+      // Only include invoices with "Blocked for Payment" status
+      if (!inv.Col_BS.toLowerCase().includes('block')) return false;
       return ownerPOs.some(po => {
         const poVendor = po.vendorName.toLowerCase().trim();
         const invVendor = inv.Vendor_Name.toLowerCase().trim();
@@ -114,57 +116,59 @@ const POTable: React.FC<POTableProps> = ({ poRecords, invoiceData, vendorName })
       });
     });
 
+    if (blockedInvoices.length === 0) {
+      setError('No blocked invoices found for this PO user\'s vendors.');
+      setLoading(false);
+      return;
+    }
+
     const poLines = ownerPOs.map(po =>
       `- PO: ${po.poNumber || 'N/A'}, Vendor: ${po.vendorName}, Doc#: ${po.documentNumber || 'N/A'}`
     ).join('\n');
 
-    const invoiceLines = relatedInvoices.slice(0, 20).map(d =>
-      `- Invoice ${d.Invoice_Number || 'N/A'}, Vendor: ${d.Vendor_Name}, Due: ${d.Due_Date?.toLocaleDateString() || 'N/A'}, Amount: €${d.Open_Amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}, Status: ${d.Status}${d.Days_Overdue > 0 ? ` (${d.Days_Overdue} days overdue)` : ''}, Block Status: ${d.Col_BS}`
+    const invoiceLines = blockedInvoices.slice(0, 20).map(d =>
+      `- Invoice ${d.Invoice_Number || 'N/A'}, Vendor: ${d.Vendor_Name}, Due: ${d.Due_Date?.toLocaleDateString() || 'N/A'}, Amount: €${d.Open_Amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}, Status: ${d.Status}${d.Days_Overdue > 0 ? ` (${d.Days_Overdue} days overdue)` : ''}`
     ).join('\n');
 
-    const totalAmount = relatedInvoices.reduce((sum, d) => sum + d.Open_Amount, 0);
+    const totalAmount = blockedInvoices.reduce((sum, d) => sum + d.Open_Amount, 0);
 
     const prompt = lang === 'spanish'
-      ? `Genera un email profesional e interno en ESPAÑOL para enviar a "${selectedPO.createdBy}" (email: ${selectedPO.email || 'no disponible'}) que es el responsable de la(s) Orden(es) de Compra. El email debe solicitar que desbloquee las facturas pendientes para que puedan ser pagadas.
+      ? `Genera un email profesional e interno en ESPAÑOL para enviar a "${selectedPO.createdBy}" que es el responsable de la(s) Orden(es) de Compra. El email debe solicitar que desbloquee las facturas que están bloqueadas para pago.
 
 Datos del responsable PO:
 - Nombre: ${selectedPO.createdBy}
-- Email: ${selectedPO.email || 'No disponible'}
 
 Órdenes de Compra asociadas:
 ${poLines}
 
-Facturas bloqueadas relacionadas (${relatedInvoices.length} facturas, total: €${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}):
+Facturas BLOQUEADAS para pago (${blockedInvoices.length} facturas, total: €${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}):
 ${invoiceLines}
 
 El email debe incluir:
-1. Saludo formal usando el nombre del responsable
-2. Explicación de que hay facturas pendientes de desbloqueo asociadas a sus POs
-3. Detalle de las POs y facturas con importes
-4. Solicitud clara de acción para desbloquear las facturas
-5. Mención de que el pago está pendiente de su aprobación
-6. Cierre formal
+1. Saludo formal: "Estimado/a ${selectedPO.createdBy}"
+2. Explicación de que hay facturas bloqueadas para pago asociadas a sus POs
+3. Detalle de las facturas bloqueadas con importes
+4. Solicitud clara de acción para desbloquear las facturas para que puedan ser pagadas
+5. Cierre formal
 
 NO incluyas línea de asunto, solo el cuerpo del email. No inventes datos adicionales. El tono debe ser profesional pero urgente.`
-      : `Generate a professional internal email in ENGLISH to send to "${selectedPO.createdBy}" (email: ${selectedPO.email || 'not available'}) who is the Purchase Order (PO) owner. The email should request that they unblock the pending invoices so they can be processed for payment.
+      : `Generate a professional internal email in ENGLISH to send to "${selectedPO.createdBy}" who is the Purchase Order (PO) owner. The email should request that they unblock the invoices that are currently blocked for payment.
 
 PO Owner details:
 - Name: ${selectedPO.createdBy}
-- Email: ${selectedPO.email || 'Not available'}
 
 Associated Purchase Orders:
 ${poLines}
 
-Related blocked invoices (${relatedInvoices.length} invoices, total: €${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}):
+BLOCKED invoices pending unblock (${blockedInvoices.length} invoices, total: €${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}):
 ${invoiceLines}
 
 The email should include:
-1. Formal greeting using the PO owner's name
-2. Explanation that there are invoices pending unblock associated with their POs
-3. Details of the POs and invoices with amounts
-4. Clear action request to unblock the invoices
-5. Mention that payment is pending their approval
-6. Formal closing
+1. Formal greeting: "Dear ${selectedPO.createdBy}"
+2. Explanation that there are invoices blocked for payment associated with their POs
+3. Details of the blocked invoices with amounts
+4. Clear action request to unblock the invoices so they can be processed for payment
+5. Formal closing
 
 Do NOT include a subject line, only the email body. Do not invent additional data. The tone should be professional but convey urgency.`;
 
