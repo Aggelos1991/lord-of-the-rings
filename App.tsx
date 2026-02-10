@@ -8,14 +8,14 @@ import Filters from './components/Filters';
 import InvoiceChart from './components/InvoiceChart';
 import DataTable from './components/DataTable';
 import EmailGenerator from './components/EmailGenerator';
-import POEmailGenerator from './components/POEmailGenerator';
+import POTable from './components/POTable';
 
 function App() {
   const [rawFiles, setRawFiles] = useState<File | null>(null);
   const [data, setData] = useState<ProcessedInvoice[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [poMap, setPOMap] = useState<Map<string, POUserRecord>>(new Map());
+  const [poRecords, setPORecords] = useState<POUserRecord[]>([]);
   const [poFileName, setPOFileName] = useState<string | null>(null);
 
   const [filterState, setFilterState] = useState<FilterState>({
@@ -80,8 +80,8 @@ function App() {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
-      const map = await processPOFile(file);
-      setPOMap(map);
+      const records = await processPOFile(file);
+      setPORecords(records);
       setPOFileName(file.name);
     } catch (err: any) {
       console.error(err);
@@ -391,8 +391,16 @@ function App() {
                 title={filterState.selectedVendor ? `Invoices for ${filterState.selectedVendor}` : "Raw Invoice Ledger"}
                 filterState={filterState}
                 setFilterState={setFilterState}
-                poMap={poMap}
               />
+
+              {/* PO Users Table - shows when PO file is loaded */}
+              {poRecords.length > 0 && (
+                <POTable
+                  poRecords={poRecords}
+                  invoiceData={tableData}
+                  vendorName={filterState.selectedVendor}
+                />
+              )}
 
             </div>
           )}
@@ -404,15 +412,6 @@ function App() {
       {data.length > 0 && (
         <EmailGenerator
           data={tableData}
-          vendorName={filterState.selectedVendor}
-        />
-      )}
-
-      {/* PO Email Generator - floating button + modal */}
-      {data.length > 0 && poMap.size > 0 && (
-        <POEmailGenerator
-          data={tableData}
-          poMap={poMap}
           vendorName={filterState.selectedVendor}
         />
       )}

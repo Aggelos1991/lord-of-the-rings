@@ -52,9 +52,11 @@ export interface FilterState {
 }
 
 export interface POUserRecord {
-  documentNumber: string; // Column Q in PO file
+  poNumber: string;       // Column B in PO file
+  vendorName: string;     // Column D in PO file
   createdBy: string;      // Column F in PO file (PO Owner)
   email: string;          // Column L in PO file
+  documentNumber: string; // Column Q in PO file (Invoice/Doc number)
 }
 
 export interface VendorFile {

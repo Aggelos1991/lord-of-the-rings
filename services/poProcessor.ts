@@ -3,13 +3,15 @@ import { POUserRecord } from '../types';
 
 /**
  * Process PO Users Excel file.
- * - Column Q (index 16) = Document Number (matching key to main ledger Column F)
+ * - Column B (index 1) = PO Number
+ * - Column D (index 3) = Vendor Name
  * - Column F (index 5) = Created by (PO Owner)
  * - Column L (index 11) = Email
+ * - Column Q (index 16) = Document/Invoice Number
  *
- * Returns a Map keyed by document number for fast lookup.
+ * Returns an array of all PO records.
  */
-export const processPOFile = async (file: File): Promise<Map<string, POUserRecord>> => {
+export const processPOFile = async (file: File): Promise<POUserRecord[]> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
@@ -28,39 +30,43 @@ export const processPOFile = async (file: File): Promise<Map<string, POUserRecor
         const sheet = workbook.Sheets[sheetName];
         const rows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1 });
 
-        // Find header row — look for a row containing "Created" in column F area
+        // Find header row
         let headerRowIndex = 0;
         for (let i = 0; i < Math.min(20, rows.length); i++) {
           const row = rows[i];
           if (!row) continue;
-          // Check if any cell looks like a header
           const rowStr = row.map((c: any) => String(c || '').toLowerCase()).join(' ');
-          if (rowStr.includes('created') || rowStr.includes('document') || rowStr.includes('email')) {
+          if (rowStr.includes('created') || rowStr.includes('document') || rowStr.includes('vendor') || rowStr.includes('email')) {
             headerRowIndex = i;
             break;
           }
         }
 
-        const poMap = new Map<string, POUserRecord>();
+        const records: POUserRecord[] = [];
 
         for (let i = headerRowIndex + 1; i < rows.length; i++) {
           const row = rows[i];
           if (!row || row.length === 0) continue;
 
-          const docNumber = String(row[16] || '').trim(); // Column Q = index 16
-          const createdBy = String(row[5] || '').trim();  // Column F = index 5
-          const email = String(row[11] || '').trim();      // Column L = index 11
+          const poNumber = String(row[1] || '').trim();       // Column B = index 1
+          const vendorName = String(row[3] || '').trim();     // Column D = index 3
+          const createdBy = String(row[5] || '').trim();      // Column F = index 5
+          const email = String(row[11] || '').trim();          // Column L = index 11
+          const documentNumber = String(row[16] || '').trim(); // Column Q = index 16
 
-          if (!docNumber) continue;
+          // Skip empty rows — at minimum need a vendor or PO number
+          if (!vendorName && !poNumber) continue;
 
-          poMap.set(docNumber, {
-            documentNumber: docNumber,
+          records.push({
+            poNumber,
+            vendorName,
             createdBy,
             email,
+            documentNumber,
           });
         }
 
-        resolve(poMap);
+        resolve(records);
       } catch (err) {
         reject(err);
       }
