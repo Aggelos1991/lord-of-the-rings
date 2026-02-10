@@ -1,6 +1,6 @@
 import React from 'react';
 import { FilterState } from '../types';
-import { Filter, Globe, AlertCircle, FileText, Search, DollarSign, Archive, TrendingDown } from 'lucide-react';
+import { Filter, Globe, AlertCircle, FileText, Search, DollarSign, Archive, TrendingDown, RotateCcw } from 'lucide-react';
 
 interface FiltersProps {
   filterState: FilterState;
@@ -19,9 +19,33 @@ const Filters: React.FC<FiltersProps> = ({
   return (
     <div className="bg-slate-800 border-r border-slate-700 w-full lg:w-80 flex-shrink-0 p-6 flex flex-col gap-6 overflow-y-auto lg:h-[calc(100vh-80px)] lg:sticky lg:top-[80px]">
       
-      <div className="flex items-center gap-2 text-gold-500 mb-2">
-        <Filter size={20} />
-        <h2 className="text-xl font-cinzel font-bold">Filters</h2>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2 text-gold-500">
+          <Filter size={20} />
+          <h2 className="text-xl font-cinzel font-bold">Filters</h2>
+        </div>
+        <button
+          onClick={() => setFilterState(prev => ({
+            ...prev,
+            country: 'All',
+            vendorSearch: '',
+            invoiceSearch: '',
+            amountOperator: 'all',
+            amountValue: '',
+            amountValueMin: '',
+            amountValueMax: '',
+            altDocDateYear: 'All',
+            debitBalanceOnly: false,
+            chartStatus: 'All Open',
+            vendorGroup: 'Top 20',
+            selectedVendor: null,
+            selectedVendorTypes: availableVendorTypes,
+            selectedBFPStatus: availableBFPStatus,
+          }))}
+          className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-gold-500 transition-colors bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 hover:border-gold-600"
+        >
+          <RotateCcw size={12} /> Reset All
+        </button>
       </div>
 
       {/* Vendor Search */}
