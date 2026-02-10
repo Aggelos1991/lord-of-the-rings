@@ -6,6 +6,7 @@ import KPIGrid from './components/KPIGrid';
 import Filters from './components/Filters';
 import InvoiceChart from './components/InvoiceChart';
 import DataTable from './components/DataTable';
+import EmailGenerator from './components/EmailGenerator';
 
 function App() {
   const [rawFiles, setRawFiles] = useState<File | null>(null);
@@ -359,6 +360,14 @@ function App() {
 
         </main>
       </div>
+
+      {/* Email Generator - floating button + modal */}
+      {data.length > 0 && (
+        <EmailGenerator
+          data={tableData}
+          vendorName={filterState.selectedVendor}
+        />
+      )}
     </div>
   );
 }
