@@ -350,11 +350,10 @@ const DataTable: React.FC<DataTableProps> = ({ data, title, filterState, setFilt
             <thead className="bg-slate-900 text-slate-200 uppercase font-medium text-xs">
               <tr>
                 <th className="px-4 py-3">Vendor</th>
+                <th className="px-4 py-3">Entity</th>
                 <th className="px-4 py-3">Invoice #</th>
                 <th className="px-4 py-3">Due Date</th>
                 <th className="px-4 py-3 text-right">Amount</th>
-                <th className="px-4 py-3">CN #</th>
-                <th className="px-4 py-3 text-right">CN €</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Days</th>
                 <th className="px-4 py-3">Type</th>
@@ -367,11 +366,15 @@ const DataTable: React.FC<DataTableProps> = ({ data, title, filterState, setFilt
                 <tr
                   key={row.id}
                   className={`hover:bg-slate-700/50 transition-colors ${
-                    row.CN_Amount && row.CN_Amount > 0 ? "bg-purple-900/10" : ""
+                    row.Open_Amount < 0 ? "bg-orange-900/10" : ""
                   }`}
                 >
                   <td className="px-4 py-2 font-medium text-white truncate max-w-[200px]" title={row.Vendor_Name}>
                     {row.Vendor_Name}
+                  </td>
+
+                  <td className="px-4 py-2 text-slate-300 truncate max-w-[100px]" title={row.Entity}>
+                    {row.Entity || '-'}
                   </td>
 
                   <td className="px-4 py-2 font-mono text-xs text-slate-300 truncate max-w-[160px]" title={row.Invoice_Number}>
@@ -382,18 +385,8 @@ const DataTable: React.FC<DataTableProps> = ({ data, title, filterState, setFilt
                     {row.Due_Date?.toLocaleDateString()}
                   </td>
 
-                  <td className="px-4 py-2 text-right text-slate-200 font-mono">
+                  <td className={`px-4 py-2 text-right font-mono ${row.Open_Amount < 0 ? 'text-orange-400' : 'text-slate-200'}`}>
                     €{row.Open_Amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </td>
-
-                  {/* CN Number */}
-                  <td className="px-4 py-2 text-purple-300 font-mono">
-                    {row.CN_Number || "-"}
-                  </td>
-
-                  {/* CN Amount */}
-                  <td className="px-4 py-2 text-right text-purple-400 font-mono">
-                    {row.CN_Amount ? `€${row.CN_Amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : "-"}
                   </td>
 
                   <td className="px-4 py-2">

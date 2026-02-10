@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { UploadCloud, FileSpreadsheet } from 'lucide-react';
 import { ProcessedInvoice, FilterState } from './types';
 import { processExcelFile } from './services/excelProcessor';
-import { processCreditNotesFile, CNRecord } from './services/creditNotesProcessor';
 import KPIGrid from './components/KPIGrid';
 import Filters from './components/Filters';
 import InvoiceChart from './components/InvoiceChart';
@@ -10,9 +9,7 @@ import DataTable from './components/DataTable';
 
 function App() {
   const [rawFiles, setRawFiles] = useState<File | null>(null);
-  const [cnFiles, setCnFiles] = useState<File | null>(null);
   const [data, setData] = useState<ProcessedInvoice[]>([]);
-  const [cnData, setCnData] = useState<CNRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,7 +27,8 @@ function App() {
     chartStatus: 'All Open',
     vendorGroup: 'Top 20',
     selectedVendor: null,
-    oldInvoicesOnly: false,
+    altDocDateYear: 'All',
+    debitBalanceOnly: false,
   });
 
   // ========== AVAILABLE FILTER OPTIONS ========== //
@@ -43,26 +41,15 @@ function App() {
     [data]
   );
 
-  // ========== DATE BOUNDS ========== //
-  const dateBounds = useMemo(() => {
-    if (data.length === 0) return { min: new Date(), max: new Date() };
-    const timestamps = data.map(d => d.Due_Date?.getTime() || 0).filter(t => t > 0);
-    return {
-      min: new Date(Math.min(...timestamps)),
-      max: new Date(Math.max(...timestamps)),
-    };
-  }, [data]);
-
   useEffect(() => {
     if (data.length > 0) {
       setFilterState(prev => ({
         ...prev,
-        dateRange: [dateBounds.min, dateBounds.max],
         selectedVendorTypes: availableVendorTypes,
         selectedBFPStatus: availableBFPStatus,
       }));
     }
-  }, [data, availableVendorTypes, availableBFPStatus, dateBounds]);
+  }, [data, availableVendorTypes, availableBFPStatus]);
 
   // ========== UPLOAD MASTER FILE ========== //
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,37 +69,6 @@ function App() {
       setLoading(false);
     }
   };
-
-  // ========== UPLOAD CREDIT NOTES FILE ========== //
-  const handleCNUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setCnFiles(file);
-    try {
-      const processedCN = await processCreditNotesFile(file);
-      setCnData(processedCN);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to process Credit Notes file.");
-    }
-  };
-
-  // ========== MATCHING CREDIT NOTES TO MASTER ========== //
-  useEffect(() => {
-    if (data.length === 0 || cnData.length === 0) return;
-
-    const updated = data.map(inv => {
-      const match = cnData.find(cn => cn.VAT_ID_clean === inv.VAT_ID_clean);
-      return {
-        ...inv,
-        CN_Number: match?.CN_Number || "",
-        CN_Amount: match?.CN_Amount || 0,
-      };
-    });
-
-    setData(updated);
-  }, [cnData]);
 
   // ========== FILTERING MAIN TABLE ========== //
   const filteredData = useMemo(() => {
@@ -134,20 +90,23 @@ function App() {
     // First pass: apply all filters EXCEPT vendor amount
     let result = data.filter(item => {
       if (filterState.country !== 'All' && item.Country_Type !== filterState.country) return false;
-      if (filterState.dateRange[0] && item.Due_Date < filterState.dateRange[0]) return false;
-      if (filterState.dateRange[1] && item.Due_Date > filterState.dateRange[1]) return false;
 
       if (vendorSearchRegex && !vendorSearchRegex.test(item.Vendor_Name)) return false;
 
       if (!filterState.selectedVendorTypes.includes(item.Vendor_Type)) return false;
       if (!filterState.selectedBFPStatus.includes(item.Col_BS)) return false;
 
-      // Old Invoices filter: only show invoices with Alternative Document Date year <= 2024
-      if (filterState.oldInvoicesOnly) {
+      // Alternative Document Date year filter (Col Y)
+      if (filterState.altDocDateYear !== 'All') {
         if (!item.Alternative_Document_Date) return false;
         const year = item.Alternative_Document_Date.getFullYear();
-        if (year > 2024) return false;
+        if (filterState.altDocDateYear === '2025' && year !== 2025) return false;
+        if (filterState.altDocDateYear === '2026' && year !== 2026) return false;
+        if (filterState.altDocDateYear === 'Old' && year > 2024) return false;
       }
+
+      // Debit Balance filter: only show vendors with negative Open_Amount
+      if (filterState.debitBalanceOnly && item.Open_Amount >= 0) return false;
 
       return true;
     });
@@ -297,21 +256,6 @@ function App() {
               </button>
             </div>
 
-            {/* Upload Credit Notes */}
-            <div className="relative group">
-              <input
-                type="file"
-                onChange={handleCNUpload}
-                accept=".xlsx, .xls"
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                disabled={loading}
-              />
-              <button className="flex items-center gap-2 px-6 py-2 rounded-full border bg-purple-600 border-purple-600 text-white hover:bg-purple-500">
-                <UploadCloud size={18} />
-                <span className="font-bold">{cnFiles ? "Change CN" : "Upload Credit Notes"}</span>
-              </button>
-            </div>
-
           </div>
 
         </div>
@@ -325,8 +269,6 @@ function App() {
             setFilterState={setFilterState}
             availableVendorTypes={availableVendorTypes}
             availableBFPStatus={availableBFPStatus}
-            minDate={dateBounds.min}
-            maxDate={dateBounds.max}
           />
         )}
 

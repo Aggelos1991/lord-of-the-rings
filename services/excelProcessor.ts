@@ -103,10 +103,13 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
             const openAmount = row[CONFIG.MAIN_COLS_INDICES[3]];
             const vatId = String(row[CONFIG.MAIN_COLS_INDICES[1]] || '');
 
+            // Extract Entity (Column C = index 2)
+            const entity = String(row[2] || '').trim();
+
             // Validation
-            if (!rawDueDate || !openAmount) { skip.noDateAmt++; continue; }
+            if (!rawDueDate || (openAmount === undefined || openAmount === null || openAmount === '')) { skip.noDateAmt++; continue; }
             const amountNum = typeof openAmount === 'number' ? openAmount : parseFloat(openAmount);
-            if (isNaN(amountNum) || amountNum <= 0) { skip.badAmt++; continue; }
+            if (isNaN(amountNum) || amountNum === 0) { skip.badAmt++; continue; }
 
             // Date Parsing
             let dueDate: Date;
@@ -123,8 +126,8 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
 
             // Normalize BT (Block Status)
             const rawBT = String(row[btIdx] || '').trim();
-            let bsStatus: string;
             const rawBTUpper = rawBT.toUpperCase();
+            let bsStatus: string;
             if (rawBTUpper === 'BFP' || rawBTUpper.includes('BLOCK')) {
                 bsStatus = "Blocked for Payment";
             } else if (rawBTUpper === '' || rawBTUpper === 'FREE FOR PAYMENT' || rawBTUpper === 'FREE' || rawBTUpper === 'OK') {
@@ -186,6 +189,7 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
                 Vendor_Name: String(vendorName),
                 VAT_ID: vatId,
                 VAT_ID_clean: vatIdClean,
+                Entity: entity,
                 Due_Date: dueDate,
                 Open_Amount: amountNum,
                 Invoice_Number: String(row[10] || ''), // Column K = index 10

@@ -1,26 +1,20 @@
 import React from 'react';
 import { FilterState } from '../types';
-import { Filter, Calendar, Globe, AlertCircle, FileText, Search, DollarSign, Archive } from 'lucide-react';
+import { Filter, Globe, AlertCircle, FileText, Search, DollarSign, Archive, TrendingDown } from 'lucide-react';
 
 interface FiltersProps {
   filterState: FilterState;
   setFilterState: React.Dispatch<React.SetStateAction<FilterState>>;
   availableVendorTypes: string[];
   availableBFPStatus: string[];
-  minDate: Date;
-  maxDate: Date;
 }
 
-const Filters: React.FC<FiltersProps> = ({ 
-  filterState, 
-  setFilterState, 
+const Filters: React.FC<FiltersProps> = ({
+  filterState,
+  setFilterState,
   availableVendorTypes,
   availableBFPStatus,
-  minDate,
-  maxDate
 }) => {
-  
-  const formatDate = (d: Date | null) => d ? d.toISOString().split('T')[0] : '';
 
   return (
     <div className="bg-slate-800 border-r border-slate-700 w-full lg:w-80 flex-shrink-0 p-6 flex flex-col gap-6 overflow-y-auto lg:h-[calc(100vh-80px)] lg:sticky lg:top-[80px]">
@@ -74,18 +68,41 @@ const Filters: React.FC<FiltersProps> = ({
         </div>
       </div>
 
-      {/* Old Invoices Filter (Alternative Document Date ≤ 2024) */}
+      {/* Document Year Filter (Alternative Document Date - Col Y) */}
       <div className="space-y-2">
         <label className="text-sm font-semibold text-slate-300 flex items-center gap-2">
-          <Archive size={16} /> Old Invoices (≤ 2024)
+          <Archive size={16} /> Document Year (Col Y)
         </label>
         <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700">
-          {['All', 'Old Only'].map((opt) => (
+          {(['All', '2025', '2026', 'Old'] as const).map((opt) => (
             <button
               key={opt}
-              onClick={() => setFilterState(prev => ({ ...prev, oldInvoicesOnly: opt === 'Old Only' }))}
+              onClick={() => setFilterState(prev => ({ ...prev, altDocDateYear: opt }))}
               className={`flex-1 text-sm py-1.5 rounded-md transition-colors ${
-                (opt === 'Old Only' ? filterState.oldInvoicesOnly : !filterState.oldInvoicesOnly)
+                filterState.altDocDateYear === opt
+                  ? 'bg-gold-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              {opt === 'Old' ? '≤2024' : opt}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-slate-500">Based on Alternative Document Date (Col Y)</p>
+      </div>
+
+      {/* Debit Balance Vendors */}
+      <div className="space-y-2">
+        <label className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+          <TrendingDown size={16} /> Debit Balance
+        </label>
+        <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700">
+          {['All', 'Debit Only'].map((opt) => (
+            <button
+              key={opt}
+              onClick={() => setFilterState(prev => ({ ...prev, debitBalanceOnly: opt === 'Debit Only' }))}
+              className={`flex-1 text-sm py-1.5 rounded-md transition-colors ${
+                (opt === 'Debit Only' ? filterState.debitBalanceOnly : !filterState.debitBalanceOnly)
                   ? 'bg-gold-600 text-white shadow-sm'
                   : 'text-slate-400 hover:text-white'
               }`}
@@ -94,38 +111,7 @@ const Filters: React.FC<FiltersProps> = ({
             </button>
           ))}
         </div>
-        <p className="text-xs text-slate-500">Based on Alternative Document Date (Col Y)</p>
-      </div>
-
-      {/* Date Range */}
-      <div className="space-y-2">
-        <label className="text-sm font-semibold text-slate-300 flex items-center gap-2">
-          <Calendar size={16} /> Due Date Range
-        </label>
-        <div className="grid grid-cols-2 gap-2">
-          <input 
-            type="date" 
-            className="bg-slate-900 border border-slate-700 text-white text-xs rounded p-2 focus:border-gold-500 outline-none"
-            value={formatDate(filterState.dateRange[0])}
-            min={formatDate(minDate)}
-            max={formatDate(maxDate)}
-            onChange={(e) => {
-              const d = e.target.value ? new Date(e.target.value) : null;
-              setFilterState(prev => ({ ...prev, dateRange: [d, prev.dateRange[1]] }));
-            }}
-          />
-          <input 
-            type="date" 
-            className="bg-slate-900 border border-slate-700 text-white text-xs rounded p-2 focus:border-gold-500 outline-none"
-            value={formatDate(filterState.dateRange[1])}
-            min={formatDate(minDate)}
-            max={formatDate(maxDate)}
-            onChange={(e) => {
-              const d = e.target.value ? new Date(e.target.value) : null;
-              setFilterState(prev => ({ ...prev, dateRange: [prev.dateRange[0], d] }));
-            }}
-          />
-        </div>
+        <p className="text-xs text-slate-500">Vendors with negative amounts (Col G)</p>
       </div>
 
       {/* Amount Filter */}

@@ -2,6 +2,7 @@ export interface RawInvoice {
   Vendor_Name: string;
   VAT_ID: string;
   VAT_ID_clean: string; // normalized VAT for matching
+  Entity: string; // Column C
   Due_Date: Date | null;
   Open_Amount: number;
   Invoice_Number: string; // Column K
@@ -45,7 +46,8 @@ export interface FilterState {
   chartStatus: 'All Open' | 'Overdue Only' | 'Not Overdue Only';
   vendorGroup: string; // "Top 20", "Specific Name", etc.
   selectedVendor: string | null; // For drill-down
-  oldInvoicesOnly: boolean; // Show only invoices with Alternative Document Date year <= 2024
+  altDocDateYear: 'All' | '2025' | '2026' | 'Old'; // Filter by Alternative Document Date year (Col Y)
+  debitBalanceOnly: boolean; // Show only vendors with negative Open_Amount (Col G)
 }
 
 export interface VendorFile {
