@@ -350,6 +350,7 @@ const DataTable: React.FC<DataTableProps> = ({ data, title, filterState, setFilt
             <thead className="bg-slate-900 text-slate-200 uppercase font-medium text-xs">
               <tr>
                 <th className="px-4 py-3">Vendor</th>
+                <th className="px-4 py-3">VAT ID</th>
                 <th className="px-4 py-3">Entity</th>
                 <th className="px-4 py-3">Invoice #</th>
                 <th className="px-4 py-3">Due Date</th>
@@ -371,6 +372,10 @@ const DataTable: React.FC<DataTableProps> = ({ data, title, filterState, setFilt
                 >
                   <td className="px-4 py-2 font-medium text-white truncate max-w-[200px]" title={row.Vendor_Name}>
                     {row.Vendor_Name}
+                  </td>
+
+                  <td className="px-4 py-2 font-mono text-xs text-slate-300 truncate max-w-[120px]" title={row.VAT_ID}>
+                    {row.VAT_ID || '-'}
                   </td>
 
                   <td className="px-4 py-2 text-slate-300 truncate max-w-[100px]" title={row.Entity}>
