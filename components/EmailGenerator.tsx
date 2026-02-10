@@ -133,10 +133,11 @@ Do NOT include a subject line, only the email body. Do not invent additional dat
       {/* Floating Button */}
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-50 bg-gold-600 hover:bg-gold-500 text-black rounded-full p-4 shadow-2xl transition-all duration-300 hover:scale-110 flex items-center gap-2"
-        title="Generate Email"
+        className="fixed bottom-8 right-8 z-50 bg-amber-500 hover:bg-amber-400 text-black rounded-2xl px-5 py-4 shadow-2xl transition-all duration-300 hover:scale-105 flex items-center gap-3 font-bold text-sm border-2 border-amber-300"
+        style={{ boxShadow: '0 0 25px rgba(245, 158, 11, 0.4)' }}
       >
-        <MessageSquare size={24} />
+        <MessageSquare size={22} />
+        Generate Email
       </button>
 
       {/* Modal Overlay */}
