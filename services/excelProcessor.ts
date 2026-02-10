@@ -206,6 +206,9 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
             });
         }
 
+        // DEBUG: show as alert so it's impossible to miss
+        const debugMsg = `EXCEL DEBUG:\nSheets: ${workbook.SheetNames.join(', ')}\nHeader row: ${headerRowIndex}\nTotal rows: ${totalRows}\nPassed filters: ${processedRows.length}\n\nSkipped breakdown:\n- empty: ${skip.empty}\n- badName: ${skip.badName}\n- onyx: ${skip.onyx}\n- noDateAmt: ${skip.noDateAmt}\n- badAmt: ${skip.badAmt}\n- badDate: ${skip.badDate}\n- flags(AF/AH/AJ): ${skip.flags}\n- AY!=0: ${skip.ay}`;
+        alert(debugMsg);
         console.log('=== EXCEL PROCESSOR DEBUG ===');
         console.log('Sheets found:', workbook.SheetNames);
         console.log('Header row index:', headerRowIndex);
