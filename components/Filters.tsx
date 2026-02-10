@@ -98,7 +98,7 @@ const Filters: React.FC<FiltersProps> = ({
           <Archive size={16} /> Document Year (Col Y)
         </label>
         <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700">
-          {(['All', '2025', '2026', 'Old'] as const).map((opt) => (
+          {(['All', '2026', '2025', 'Old'] as const).map((opt) => (
             <button
               key={opt}
               onClick={() => setFilterState(prev => ({ ...prev, altDocDateYear: opt }))}
