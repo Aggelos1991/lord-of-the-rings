@@ -210,26 +210,6 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
             });
         }
 
-        // DEBUG: show as alert so it's impossible to miss
-        const debugMsg = `EXCEL DEBUG:\nSheets: ${workbook.SheetNames.join(', ')}\nHeader row: ${headerRowIndex}\nTotal rows: ${totalRows}\nPassed filters: ${processedRows.length}\n\nSkipped breakdown:\n- empty: ${skip.empty}\n- badName: ${skip.badName}\n- onyx: ${skip.onyx}\n- noDateAmt: ${skip.noDateAmt}\n- badAmt: ${skip.badAmt}\n- badDate: ${skip.badDate}\n- flags(AF/AH/AJ): ${skip.flags}\n- AY!=0: ${skip.ay}`;
-        alert(debugMsg);
-        console.log('=== EXCEL PROCESSOR DEBUG ===');
-        console.log('Sheets found:', workbook.SheetNames);
-        console.log('Header row index:', headerRowIndex);
-        console.log('Total data rows:', totalRows);
-        console.log('Skipped:', skip);
-        console.log('Rows passed all filters:', processedRows.length);
-        if (totalRows > 0 && processedRows.length === 0) {
-          // Log first 3 data rows for inspection
-          for (let d = headerRowIndex + 1; d < Math.min(headerRowIndex + 4, mainData.length); d++) {
-            const r = mainData[d];
-            if (r) console.log(`Sample row ${d}:`, {
-              colA: r[0], colB: r[1], colE: r[4], colG: r[6],
-              colK: r[10], colL: r[11], colAF: r[31], colAH: r[33], colAJ: r[35], colAY: r[50], colBT: r[71]
-            });
-          }
-        }
-
         resolve(processedRows);
 
       } catch (err) {
