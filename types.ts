@@ -60,6 +60,7 @@ export interface POUserRecord {
   createdBy: string;      // Column F in PO file (PO Owner)
   email: string;          // Column L in PO file
   documentNumber: string; // Column Q in PO file (Invoice/Doc number)
+  issueDate: Date | null; // Column A in PO file (Issue Date — used for sorting)
 }
 
 export interface VendorFile {

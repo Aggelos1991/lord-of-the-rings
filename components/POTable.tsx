@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ProcessedInvoice, POUserRecord } from '../types';
-import { UserCheck, Copy, X, Mail, Send, Search } from 'lucide-react';
+import { UserCheck, Copy, X, Mail, Send, Search, Loader2 } from 'lucide-react';
 
 interface POTableProps {
   poRecords: POUserRecord[];
@@ -8,10 +8,17 @@ interface POTableProps {
   vendorName: string | null;
 }
 
+/** Convert "John Smith" → "john.smith@saniikos.com" */
+const buildEmail = (name: string): string => {
+  if (!name.trim()) return '';
+  return name.trim().toLowerCase().replace(/\s+/g, '.') + '@saniikos.com';
+};
+
 const POTable: React.FC<POTableProps> = ({ poRecords, invoiceData, vendorName }) => {
   const [poSearch, setPOSearch] = useState('');
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [selectedPO, setSelectedPO] = useState<POUserRecord | null>(null);
+  const [resolvedEmail, setResolvedEmail] = useState('');
   const [emailBody, setEmailBody] = useState('');
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -27,7 +34,6 @@ const POTable: React.FC<POTableProps> = ({ poRecords, invoiceData, vendorName })
     return poRecords.filter(po => {
       const poVendor = po.vendorName.toLowerCase().trim();
       if (!poVendor) return false;
-      // Check for exact match or partial match (vendor name contains)
       for (const invVendor of invoiceVendorNames) {
         if (invVendor === poVendor || invVendor.includes(poVendor) || poVendor.includes(invVendor)) {
           return true;
@@ -36,20 +42,6 @@ const POTable: React.FC<POTableProps> = ({ poRecords, invoiceData, vendorName })
       return false;
     });
   }, [poRecords, invoiceVendorNames]);
-
-  // Group by PO Owner for the email generator
-  const poOwners = useMemo(() => {
-    const map = new Map<string, { createdBy: string; email: string; pos: POUserRecord[] }>();
-    matchedPOs.forEach(po => {
-      if (!po.createdBy) return;
-      const key = po.createdBy.toLowerCase();
-      if (!map.has(key)) {
-        map.set(key, { createdBy: po.createdBy, email: po.email, pos: [] });
-      }
-      map.get(key)!.pos.push(po);
-    });
-    return Array.from(map.values()).sort((a, b) => b.pos.length - a.pos.length);
-  }, [matchedPOs]);
 
   // Filter POs by search term (supports * wildcard)
   const filteredPOs = useMemo(() => {
@@ -63,7 +55,7 @@ const POTable: React.FC<POTableProps> = ({ poRecords, invoiceData, vendorName })
         regex.test(po.poNumber) ||
         regex.test(po.vendorName) ||
         regex.test(po.createdBy) ||
-        regex.test(po.email) ||
+        regex.test(buildEmail(po.createdBy)) ||
         regex.test(po.documentNumber)
       );
     } catch {
@@ -71,8 +63,35 @@ const POTable: React.FC<POTableProps> = ({ poRecords, invoiceData, vendorName })
     }
   }, [matchedPOs, poSearch]);
 
+  /**
+   * When clicking email on a PO row:
+   * 1. Find all POs for this vendor
+   * 2. Sort by issue date (Col A) ascending
+   * 3. Take the LAST created by (most recent)
+   * 4. Build email as name@saniikos.com
+   */
   const openEmailModal = (po: POUserRecord) => {
-    setSelectedPO(po);
+    // Find all POs for the same vendor
+    const vendorPOs = matchedPOs.filter(p => {
+      const a = p.vendorName.toLowerCase().trim();
+      const b = po.vendorName.toLowerCase().trim();
+      return a === b || a.includes(b) || b.includes(a);
+    });
+
+    // Sort by issue date ascending (oldest first), nulls go to start
+    const sorted = [...vendorPOs].sort((a, b) => {
+      if (!a.issueDate && !b.issueDate) return 0;
+      if (!a.issueDate) return -1;
+      if (!b.issueDate) return 1;
+      return a.issueDate.getTime() - b.issueDate.getTime();
+    });
+
+    // Take the last one (most recent by issue date)
+    const lastPO = sorted.length > 0 ? sorted[sorted.length - 1] : po;
+    const email = buildEmail(lastPO.createdBy);
+
+    setSelectedPO(lastPO);
+    setResolvedEmail(email);
     setEmailModalOpen(true);
     setEmailBody('');
     setError('');
@@ -82,6 +101,7 @@ const POTable: React.FC<POTableProps> = ({ poRecords, invoiceData, vendorName })
   const closeEmailModal = () => {
     setEmailModalOpen(false);
     setSelectedPO(null);
+    setResolvedEmail('');
     setEmailBody('');
     setError('');
     setCopied(false);
@@ -93,13 +113,17 @@ const POTable: React.FC<POTableProps> = ({ poRecords, invoiceData, vendorName })
     setEmailBody('');
     setLoading(true);
 
-    // Find all POs from the same owner
-    const ownerPOs = matchedPOs.filter(p => p.createdBy.toLowerCase() === selectedPO.createdBy.toLowerCase());
+    // Find all POs from this vendor
+    const vendorPOs = matchedPOs.filter(p => {
+      const a = p.vendorName.toLowerCase().trim();
+      const b = selectedPO.vendorName.toLowerCase().trim();
+      return a === b || a.includes(b) || b.includes(a);
+    });
 
-    // Find ONLY blocked invoices from the invoice data matching these PO vendors
+    // Find ONLY blocked invoices matching these PO vendors
     const blockedInvoices = invoiceData.filter(inv => {
       if (!inv.Col_BS.toLowerCase().includes('block')) return false;
-      return ownerPOs.some(po => {
+      return vendorPOs.some(po => {
         const poVendor = po.vendorName.toLowerCase().trim();
         const invVendor = inv.Vendor_Name.toLowerCase().trim();
         return invVendor === poVendor || invVendor.includes(poVendor) || poVendor.includes(invVendor);
@@ -107,41 +131,68 @@ const POTable: React.FC<POTableProps> = ({ poRecords, invoiceData, vendorName })
     });
 
     if (blockedInvoices.length === 0) {
-      setError('No blocked invoices found for this PO user\'s vendors.');
+      setError('No blocked invoices found for this vendor.');
       setLoading(false);
       return;
     }
 
-    // Build a simple table of blocked invoices with essential info
-    const invoiceTable = blockedInvoices.map(d =>
-      `| ${d.Invoice_Number || 'N/A'} | ${d.Vendor_Name} | ${d.Entity || 'N/A'} | €${d.Open_Amount.toLocaleString(undefined, { minimumFractionDigits: 2 })} |`
+    // Build invoice details for the prompt
+    const invoiceLines = blockedInvoices.map(d =>
+      `- Invoice #${d.Invoice_Number || 'N/A'}, Vendor: ${d.Vendor_Name}, Entity: ${d.Entity || 'N/A'}, Amount: €${d.Open_Amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
     ).join('\n');
 
     const totalAmount = blockedInvoices.reduce((sum, d) => sum + d.Open_Amount, 0);
 
-    // Build email directly — no AI needed
-    const lines = [
-      `Dear ${selectedPO.createdBy},`,
-      ``,
-      `We have the following invoices blocked for payment that require your action. Please provide the PO number to sync and certification (CER) approval if missing.`,
-      ``,
-      `| Invoice # | Vendor | Entity | Amount |`,
-      `|-----------|--------|--------|--------|`,
-      invoiceTable,
-      ``,
-      `Total blocked: €${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} (${blockedInvoices.length} invoice${blockedInvoices.length > 1 ? 's' : ''})`,
-      ``,
-      `Kind regards,`,
-      `Accounts Payable Department`,
-    ];
+    const prompt = `Write a short, professional email from the Accounts Payable department to ${selectedPO.createdBy}.
 
-    setEmailBody(lines.join('\n'));
-    setLoading(false);
+The email must say: We have invoices blocked for payment that are correlated with your Purchase Order. Please provide the PO number so we can sync it, and ensure that you have provided certification (CER) approval.
+
+Include this list of blocked invoices in a clean table format:
+${invoiceLines}
+
+Total blocked amount: €${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} (${blockedInvoices.length} invoice${blockedInvoices.length > 1 ? 's' : ''})
+
+Rules:
+- Maximum 8 lines excluding the table
+- Professional but concise AP style
+- Sign as "Accounts Payable Department"
+- Do NOT add a subject line
+- Include the invoice table with columns: Invoice #, Vendor, Entity, Amount`;
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY || '',
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 600,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error?.message || `API error ${res.status}`);
+      }
+
+      const result = await res.json();
+      const text = result.content?.[0]?.text || '';
+      setEmailBody(text.trim());
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate email.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCopy = () => {
-    const emailWithRecipient = selectedPO?.email
-      ? `To: ${selectedPO.email}\n\n${emailBody}`
+    const emailWithRecipient = resolvedEmail
+      ? `To: ${resolvedEmail}\n\n${emailBody}`
       : emailBody;
     navigator.clipboard.writeText(emailWithRecipient);
     setCopied(true);
@@ -195,6 +246,7 @@ const POTable: React.FC<POTableProps> = ({ poRecords, invoiceData, vendorName })
                 <th className="px-4 py-3">PO Number</th>
                 <th className="px-4 py-3">Vendor</th>
                 <th className="px-4 py-3">Created By</th>
+                <th className="px-4 py-3">Email</th>
                 <th className="px-4 py-3">Doc #</th>
                 <th className="px-4 py-3 text-center">Action</th>
               </tr>
@@ -211,6 +263,9 @@ const POTable: React.FC<POTableProps> = ({ poRecords, invoiceData, vendorName })
                   <td className="px-4 py-2 text-emerald-300 truncate max-w-[150px]" title={po.createdBy}>
                     {po.createdBy || '-'}
                   </td>
+                  <td className="px-4 py-2 text-blue-300 text-xs truncate max-w-[200px]" title={buildEmail(po.createdBy)}>
+                    {po.createdBy ? buildEmail(po.createdBy) : '-'}
+                  </td>
                   <td className="px-4 py-2 font-mono text-xs text-slate-300 truncate max-w-[120px]" title={po.documentNumber}>
                     {po.documentNumber || '-'}
                   </td>
@@ -218,7 +273,7 @@ const POTable: React.FC<POTableProps> = ({ poRecords, invoiceData, vendorName })
                     <button
                       onClick={() => openEmailModal(po)}
                       className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg transition-colors font-medium"
-                      title={`Send email to ${po.createdBy}`}
+                      title={`Send email to ${buildEmail(po.createdBy)}`}
                     >
                       <Send size={12} /> Email
                     </button>
@@ -257,7 +312,7 @@ const POTable: React.FC<POTableProps> = ({ poRecords, invoiceData, vendorName })
               {/* PO User Info */}
               <div className="bg-slate-900 border border-slate-700 rounded-lg p-3 text-xs text-slate-400">
                 <p><span className="text-slate-300 font-medium">PO Owner:</span> <span className="text-emerald-300">{selectedPO.createdBy}</span></p>
-                <p><span className="text-slate-300 font-medium">Email:</span> <span className="text-blue-300">{selectedPO.email || 'Not available'}</span></p>
+                <p><span className="text-slate-300 font-medium">Email:</span> <span className="text-blue-300">{resolvedEmail || 'Not available'}</span></p>
                 <p><span className="text-slate-300 font-medium">PO Number:</span> {selectedPO.poNumber || 'N/A'}</p>
                 <p><span className="text-slate-300 font-medium">Vendor:</span> {selectedPO.vendorName}</p>
               </div>
@@ -275,8 +330,8 @@ const POTable: React.FC<POTableProps> = ({ poRecords, invoiceData, vendorName })
               {/* Loading */}
               {loading && (
                 <div className="flex flex-col items-center gap-3 py-8">
-                  <div className="w-10 h-10 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-emerald-400 font-cinzel animate-pulse">Forging the message...</p>
+                  <Loader2 size={40} className="text-emerald-500 animate-spin" />
+                  <p className="text-emerald-400 font-cinzel animate-pulse">Generating email...</p>
                 </div>
               )}
 
@@ -298,13 +353,13 @@ const POTable: React.FC<POTableProps> = ({ poRecords, invoiceData, vendorName })
                       onClick={() => { setEmailBody(''); setError(''); }}
                       className="text-xs text-slate-400 hover:text-emerald-400 transition-colors"
                     >
-                      Try again
+                      Regenerate
                     </button>
                   </div>
 
-                  {selectedPO.email && (
+                  {resolvedEmail && (
                     <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-900/20 border border-emerald-700 rounded-lg p-2">
-                      <Mail size={14} /> To: {selectedPO.email}
+                      <Mail size={14} /> To: {resolvedEmail}
                     </div>
                   )}
 

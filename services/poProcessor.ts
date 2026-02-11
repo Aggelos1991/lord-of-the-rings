@@ -18,7 +18,7 @@ export const processPOFile = async (file: File): Promise<POUserRecord[]> => {
     reader.onload = (e) => {
       try {
         const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: 'array' });
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
 
         // Use the first sheet
         const sheetName = workbook.SheetNames[0];
@@ -48,11 +48,25 @@ export const processPOFile = async (file: File): Promise<POUserRecord[]> => {
           const row = rows[i];
           if (!row || row.length === 0) continue;
 
+          const rawIssueDate = row[0];                          // Column A = index 0 (Issue Date)
           const poNumber = String(row[1] || '').trim();       // Column B = index 1
           const vendorName = String(row[3] || '').trim();     // Column D = index 3
           const createdBy = String(row[5] || '').trim();      // Column F = index 5
           const email = String(row[11] || '').trim();          // Column L = index 11
           const documentNumber = String(row[16] || '').trim(); // Column Q = index 16
+
+          // Parse issue date
+          let issueDate: Date | null = null;
+          if (rawIssueDate) {
+            if (rawIssueDate instanceof Date) {
+              issueDate = rawIssueDate;
+            } else {
+              const parsed = new Date(rawIssueDate);
+              if (!isNaN(parsed.getTime())) {
+                issueDate = parsed;
+              }
+            }
+          }
 
           // Skip empty rows — at minimum need a vendor or PO number
           if (!vendorName && !poNumber) continue;
@@ -63,6 +77,7 @@ export const processPOFile = async (file: File): Promise<POUserRecord[]> => {
             createdBy,
             email,
             documentNumber,
+            issueDate,
           });
         }
 
