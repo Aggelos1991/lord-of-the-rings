@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ProcessedInvoice, POUserRecord } from '../types';
-import { UserCheck, Copy, X, Globe, Mail, Send, Search } from 'lucide-react';
+import { UserCheck, Copy, X, Mail, Send, Search } from 'lucide-react';
 
 interface POTableProps {
   poRecords: POUserRecord[];
@@ -9,8 +9,6 @@ interface POTableProps {
 }
 
 const POTable: React.FC<POTableProps> = ({ poRecords, invoiceData, vendorName }) => {
-  const envKey = import.meta.env.VITE_ANTHROPIC_API_KEY || '';
-  const [apiKey] = useState(envKey);
   const [poSearch, setPOSearch] = useState('');
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [selectedPO, setSelectedPO] = useState<POUserRecord | null>(null);
@@ -89,17 +87,10 @@ const POTable: React.FC<POTableProps> = ({ poRecords, invoiceData, vendorName })
     setCopied(false);
   };
 
-  const generateEmail = async (lang: 'english' | 'spanish') => {
+  const generateEmail = async () => {
     if (!selectedPO) return;
     setError('');
     setEmailBody('');
-
-    const key = apiKey.trim();
-    if (!key) {
-      setError('No API key found. Configure VITE_ANTHROPIC_API_KEY in your environment or Vercel settings.');
-      return;
-    }
-
     setLoading(true);
 
     // Find all POs from the same owner
@@ -107,7 +98,6 @@ const POTable: React.FC<POTableProps> = ({ poRecords, invoiceData, vendorName })
 
     // Find ONLY blocked invoices from the invoice data matching these PO vendors
     const blockedInvoices = invoiceData.filter(inv => {
-      // Only include invoices with "Blocked for Payment" status
       if (!inv.Col_BS.toLowerCase().includes('block')) return false;
       return ownerPOs.some(po => {
         const poVendor = po.vendorName.toLowerCase().trim();
@@ -122,79 +112,31 @@ const POTable: React.FC<POTableProps> = ({ poRecords, invoiceData, vendorName })
       return;
     }
 
-    const poLines = ownerPOs.map(po =>
-      `- PO: ${po.poNumber || 'N/A'}, Vendor: ${po.vendorName}, Doc#: ${po.documentNumber || 'N/A'}`
-    ).join('\n');
-
-    const invoiceLines = blockedInvoices.slice(0, 20).map(d =>
-      `- Invoice ${d.Invoice_Number || 'N/A'}, Vendor: ${d.Vendor_Name}, Due: ${d.Due_Date?.toLocaleDateString() || 'N/A'}, Amount: €${d.Open_Amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}, Status: ${d.Status}${d.Days_Overdue > 0 ? ` (${d.Days_Overdue} days overdue)` : ''}`
+    // Build a simple table of blocked invoices with essential info
+    const invoiceTable = blockedInvoices.map(d =>
+      `| ${d.Invoice_Number || 'N/A'} | ${d.Vendor_Name} | ${d.Entity || 'N/A'} | €${d.Open_Amount.toLocaleString(undefined, { minimumFractionDigits: 2 })} |`
     ).join('\n');
 
     const totalAmount = blockedInvoices.reduce((sum, d) => sum + d.Open_Amount, 0);
 
-    const prompt = lang === 'spanish'
-      ? `Genera un email CORTO e interno en ESPAÑOL desde Cuentas a Pagar para "${selectedPO.createdBy}" (responsable de PO).
+    // Build email directly — no AI needed
+    const lines = [
+      `Dear ${selectedPO.createdBy},`,
+      ``,
+      `We have the following invoices blocked for payment that require your action. Please provide the PO number to sync and certification (CER) approval if missing.`,
+      ``,
+      `| Invoice # | Vendor | Entity | Amount |`,
+      `|-----------|--------|--------|--------|`,
+      invoiceTable,
+      ``,
+      `Total blocked: €${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} (${blockedInvoices.length} invoice${blockedInvoices.length > 1 ? 's' : ''})`,
+      ``,
+      `Kind regards,`,
+      `Accounts Payable Department`,
+    ];
 
-El email debe ser breve (máximo 5-6 líneas), directo y al grano. NO escribas un email largo.
-
-Datos:
-- ${blockedInvoices.length} factura(s) bloqueada(s), total: €${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-- PO(s) asociada(s): ${ownerPOs.map(po => po.poNumber).filter(Boolean).join(', ') || 'N/A'}
-
-Estructura del email:
-1. "Estimado/a ${selectedPO.createdBy},"
-2. Informar que tiene facturas bloqueadas para pago asociadas a su(s) PO(s)
-3. Solicitar que por favor resuelva: proporcione el número de PO y la aprobación de certificación
-4. Mencionar el total bloqueado
-5. Cierre breve con "Saludos cordiales" y "Departamento de Cuentas a Pagar"
-
-NO incluyas línea de asunto. NO incluyas lista detallada de cada factura. NO inventes datos. Sé CONCISO.`
-      : `Generate a SHORT internal email in ENGLISH from Accounts Payable to "${selectedPO.createdBy}" (PO owner).
-
-The email must be brief (maximum 5-6 lines), direct and to the point. Do NOT write a long email.
-
-Data:
-- ${blockedInvoices.length} blocked invoice(s), total: €${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-- Associated PO(s): ${ownerPOs.map(po => po.poNumber).filter(Boolean).join(', ') || 'N/A'}
-
-Email structure:
-1. "Dear ${selectedPO.createdBy},"
-2. Inform them they have invoices blocked for payment associated with their PO(s)
-3. Request they please resolve: provide the PO number and certification approval
-4. Mention the total amount blocked
-5. Brief closing with "Kind regards" and "Accounts Payable Department"
-
-Do NOT include a subject line. Do NOT include a detailed list of each invoice. Do NOT invent data. Be CONCISE.`;
-
-    try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': key,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1500,
-          messages: [{ role: 'user', content: prompt }],
-        }),
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error?.message || `API error: ${response.status}`);
-      }
-
-      const result = await response.json();
-      const text = result.content?.[0]?.text || 'No response generated.';
-      setEmailBody(text);
-    } catch (err: any) {
-      setError(err.message || 'Failed to generate email.');
-    } finally {
-      setLoading(false);
-    }
+    setEmailBody(lines.join('\n'));
+    setLoading(false);
   };
 
   const handleCopy = () => {
@@ -320,29 +262,14 @@ Do NOT include a subject line. Do NOT include a detailed list of each invoice. D
                 <p><span className="text-slate-300 font-medium">Vendor:</span> {selectedPO.vendorName}</p>
               </div>
 
-              {/* Language Selection */}
+              {/* Generate Email Button */}
               {!emailBody && !loading && (
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-300 flex items-center gap-2">
-                    <Globe size={14} /> Select Language
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => generateEmail('english')}
-                      disabled={loading}
-                      className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 text-white py-3 rounded-xl transition-colors font-medium"
-                    >
-                      <span className="text-lg">🇬🇧</span> English
-                    </button>
-                    <button
-                      onClick={() => generateEmail('spanish')}
-                      disabled={loading}
-                      className="flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-500 disabled:bg-slate-600 text-white py-3 rounded-xl transition-colors font-medium"
-                    >
-                      <span className="text-lg">🇪🇸</span> Español
-                    </button>
-                  </div>
-                </div>
+                <button
+                  onClick={() => generateEmail()}
+                  className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl transition-colors font-bold text-sm"
+                >
+                  <Send size={16} /> Generate Email
+                </button>
               )}
 
               {/* Loading */}
