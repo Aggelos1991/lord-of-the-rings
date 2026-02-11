@@ -73,6 +73,18 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
         // Column BT = index 71 (Block Status: BFP / Free for Payment)
         const btIdx = 71;
 
+        // Dynamically find "Agreeded" / "Reconciled" column from header row
+        const headerRow = mainData[headerRowIndex];
+        let agreedColIdx = -1;
+        for (let c = 0; c < (headerRow?.length || 0); c++) {
+          const hdr = String(headerRow[c] || '').trim().toLowerCase();
+          if (hdr.includes('agreed') || hdr.includes('reconcil')) {
+            agreedColIdx = c;
+            break;
+          }
+        }
+        console.log(`[AGREED COL] Found "Agreeded" column at index: ${agreedColIdx}, header row: ${headerRowIndex}`);
+
         // 5. Process Rows
         const processedRows: ProcessedInvoice[] = [];
         const today = new Date();
@@ -158,21 +170,22 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
             const ayVal = typeof rawAY === 'number' ? rawAY : parseFloat(String(rawAY || ''));
             if (isNaN(ayVal) || ayVal !== 0) { skip.ay++; continue; }
 
-            // Column X = index 23 (Reconciled: 1 or 0)
-            const rawReconciled = row[23];
-            // Debug: log first 5 values to console so we can see the format
-            if (processedRows.length < 5) {
-              console.log(`[DEBUG] Row ${i} Col X raw value:`, rawReconciled, `type: ${typeof rawReconciled}`);
-            }
-            let reconciled: number;
-            if (typeof rawReconciled === 'number') {
-              reconciled = rawReconciled;
-            } else {
-              const str = String(rawReconciled || '').trim().toLowerCase();
-              if (str === '1' || str === 'yes' || str === 'y' || str === 'true' || str === 'reconciled' || str === 'si' || str === 'sí') {
-                reconciled = 1;
+            // Agreeded/Reconciled column (dynamically found from header)
+            let reconciled = 0;
+            if (agreedColIdx >= 0) {
+              const rawReconciled = row[agreedColIdx];
+              if (processedRows.length < 5) {
+                console.log(`[DEBUG] Row ${i} Agreeded col[${agreedColIdx}] raw value:`, rawReconciled, `type: ${typeof rawReconciled}`);
+              }
+              if (typeof rawReconciled === 'number') {
+                reconciled = rawReconciled;
               } else {
-                reconciled = 0;
+                const str = String(rawReconciled || '').trim().toLowerCase();
+                if (str === '1' || str === 'yes' || str === 'y' || str === 'true' || str === 'reconciled' || str === 'si' || str === 'sí') {
+                  reconciled = 1;
+                } else {
+                  reconciled = 0;
+                }
               }
             }
 
