@@ -1,6 +1,6 @@
 import React from 'react';
 import { FilterState } from '../types';
-import { Filter, Globe, AlertCircle, FileText, Search, DollarSign, Archive, TrendingDown, RotateCcw } from 'lucide-react';
+import { Filter, Globe, AlertCircle, FileText, Search, DollarSign, Archive, TrendingDown, RotateCcw, CheckCircle } from 'lucide-react';
 
 interface FiltersProps {
   filterState: FilterState;
@@ -36,6 +36,7 @@ const Filters: React.FC<FiltersProps> = ({
             amountValueMax: '',
             altDocDateYear: 'All',
             debitBalanceOnly: false,
+            reconciledFilter: 'All',
             chartStatus: 'All Open',
             vendorGroup: 'Top 20',
             selectedVendor: null,
@@ -136,6 +137,29 @@ const Filters: React.FC<FiltersProps> = ({
           ))}
         </div>
         <p className="text-xs text-slate-500">Vendors with negative amounts (Col G)</p>
+      </div>
+
+      {/* Reconciled Filter (Col X) */}
+      <div className="space-y-2">
+        <label className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+          <CheckCircle size={16} /> Reconciled (Col X)
+        </label>
+        <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700">
+          {(['All', 'Reconciled', 'Not Reconciled'] as const).map((opt) => (
+            <button
+              key={opt}
+              onClick={() => setFilterState(prev => ({ ...prev, reconciledFilter: opt }))}
+              className={`flex-1 text-sm py-1.5 rounded-md transition-colors ${
+                filterState.reconciledFilter === opt
+                  ? 'bg-gold-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              {opt === 'Not Reconciled' ? 'Not Rec.' : opt}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-slate-500">1 = Reconciled, 0 = Not Reconciled</p>
       </div>
 
       {/* Amount Filter */}

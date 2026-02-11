@@ -14,6 +14,7 @@ export interface RawInvoice {
   Col_AJ: string; // Filter Yes/No
   Col_AN: string; // Filter Yes/No
   Col_BS: string; // Block Status
+  Reconciled: number; // Column X: 1 = Reconciled, 0 = Not Reconciled
   Business_Area: string;
   Alternative_Document_Date: Date | null; // Column Y
 }
@@ -49,6 +50,7 @@ export interface FilterState {
   selectedVendor: string | null; // For drill-down
   altDocDateYear: 'All' | '2025' | '2026' | 'Old'; // Filter by Alternative Document Date year (Col Y)
   debitBalanceOnly: boolean; // Show only vendors with negative Open_Amount (Col G)
+  reconciledFilter: 'All' | 'Reconciled' | 'Not Reconciled'; // Column X: 1 or 0
 }
 
 export interface POUserRecord {

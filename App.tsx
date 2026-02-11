@@ -34,6 +34,7 @@ function App() {
     selectedVendor: null,
     altDocDateYear: 'All',
     debitBalanceOnly: false,
+    reconciledFilter: 'All',
   });
 
   // ========== AVAILABLE FILTER OPTIONS ========== //
@@ -126,6 +127,10 @@ function App() {
 
       // Debit Balance filter: only show vendors with negative Open_Amount
       if (filterState.debitBalanceOnly && item.Open_Amount >= 0) return false;
+
+      // Reconciled filter (Col X): 1 = Reconciled, 0 = Not Reconciled
+      if (filterState.reconciledFilter === 'Reconciled' && item.Reconciled !== 1) return false;
+      if (filterState.reconciledFilter === 'Not Reconciled' && item.Reconciled !== 0) return false;
 
       return true;
     });

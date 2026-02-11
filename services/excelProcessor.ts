@@ -158,6 +158,11 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
             const ayVal = typeof rawAY === 'number' ? rawAY : parseFloat(String(rawAY || ''));
             if (isNaN(ayVal) || ayVal !== 0) { skip.ay++; continue; }
 
+            // Column X = index 23 (Reconciled: 1 or 0)
+            const rawReconciled = row[23];
+            const reconciledVal = typeof rawReconciled === 'number' ? rawReconciled : parseInt(String(rawReconciled || '0'), 10);
+            const reconciled = isNaN(reconciledVal) ? 0 : reconciledVal;
+
             // Column Y = index 24 (Alternative Document Date)
             const rawAltDocDate = row[24];
             let altDocDate: Date | null = null;
@@ -204,6 +209,7 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
                 Col_AJ: colAJ,
                 Col_AN: '',
                 Col_BS: bsStatus,
+                Reconciled: reconciled,
                 Business_Area: '',
                 Alternative_Document_Date: altDocDate,
                 Vendor_Type: vendorType,
