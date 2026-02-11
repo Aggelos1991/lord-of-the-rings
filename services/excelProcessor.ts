@@ -127,6 +127,23 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
             // Skip invalid rows based on vendor name check
             if (!vendorName || badPatterns.test(String(vendorName))) { skip.badName++; continue; }
 
+            // *** READ AGREEDED COLUMN FIRST — before any other filters ***
+            let reconciled = 0;
+            if (agreedColIdx >= 0) {
+              const rawReconciled = row[agreedColIdx];
+              if (typeof rawReconciled === 'number') {
+                reconciled = rawReconciled >= 1 ? 1 : 0;
+              } else {
+                const str = String(rawReconciled || '').trim().toLowerCase();
+                if (str === '1' || str === 'yes' || str === 'y' || str === 'true' || str === 'reconciled' || str === 'si' || str === 'sí') {
+                  reconciled = 1;
+                } else {
+                  reconciled = 0;
+                }
+              }
+            }
+            const isReconciled = reconciled >= 1;
+
             // Hard-filter: skip rows where Column L (index 11) contains "Onyx"
             const colLVal = String(row[11] || '').trim();
             if (colLVal.toLowerCase().includes('onyx')) { skip.onyx++; continue; }
@@ -152,10 +169,9 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
             if (rawDueDate instanceof Date) {
                 dueDate = rawDueDate;
             } else {
-                // Handle potential string dates if cellDates:true failed or mixed types
                 dueDate = new Date(rawDueDate);
             }
-            if (isNaN(dueDate.getTime())) { skip.badDate++; continue; } // Skip invalid dates
+            if (isNaN(dueDate.getTime())) { skip.badDate++; continue; }
 
             // Normalize Strings
             const vatIdClean = vatId.trim().toUpperCase();
@@ -169,7 +185,6 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
             } else if (rawBTUpper === '' || rawBTUpper === 'FREE FOR PAYMENT' || rawBTUpper === 'FREE' || rawBTUpper === 'OK') {
                 bsStatus = "Free for Payment";
             } else {
-                // Show raw value as-is for any other status
                 bsStatus = rawBT;
             }
 
@@ -183,30 +198,15 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
             const colAH = normalizeFlag(CONFIG.MAIN_COLS_INDICES[7]);
             const colAJ = normalizeFlag(CONFIG.MAIN_COLS_INDICES[8]);
             // Hard-filter: only keep rows where AF, AH, AJ are all "Yes"
-            if (colAF !== 'Yes' || colAH !== 'Yes' || colAJ !== 'Yes') { skip.flags++; continue; }
-
-            // Agreeded/Reconciled column (dynamically found from header)
-            let reconciled = 0;
-            if (agreedColIdx >= 0) {
-              const rawReconciled = row[agreedColIdx];
-              if (typeof rawReconciled === 'number') {
-                reconciled = rawReconciled;
-              } else {
-                const str = String(rawReconciled || '').trim().toLowerCase();
-                if (str === '1' || str === 'yes' || str === 'y' || str === 'true' || str === 'reconciled' || str === 'si' || str === 'sí') {
-                  reconciled = 1;
-                } else {
-                  reconciled = 0;
-                }
-              }
-            }
+            // BUT reconciled rows (Agreeded=1) bypass this filter
+            if (!isReconciled && (colAF !== 'Yes' || colAH !== 'Yes' || colAJ !== 'Yes')) { skip.flags++; continue; }
 
             // Hard-filter: only keep rows where AY (col index 50) = 0
-            // BUT skip this filter for reconciled rows (Agreeded=1) so they appear in data
+            // BUT reconciled rows (Agreeded=1) bypass this filter
             const ayIdx = 50;
             const rawAY = row[ayIdx];
             const ayVal = typeof rawAY === 'number' ? rawAY : parseFloat(String(rawAY || ''));
-            if (reconciled !== 1 && (isNaN(ayVal) || ayVal !== 0)) { skip.ay++; continue; }
+            if (!isReconciled && (isNaN(ayVal) || ayVal !== 0)) { skip.ay++; continue; }
 
             // Column Y = index 24 (Alternative Document Date)
             const rawAltDocDate = row[24];
