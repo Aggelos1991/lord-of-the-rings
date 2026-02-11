@@ -348,6 +348,18 @@ function App() {
                 fullDataAmount={data.reduce((a, b) => a + b.Open_Amount, 0)}
               />
 
+              {/* DEBUG BANNER - REMOVE AFTER FIXING */}
+              <div className="bg-yellow-900/50 border border-yellow-500 rounded-lg p-3 text-xs text-yellow-200 font-mono">
+                <p className="font-bold text-yellow-400 mb-1">🔍 DEBUG: Reconciled Column Values (from ALL {data.length} rows)</p>
+                <p>Reconciled === 1: {data.filter(d => d.Reconciled === 1).length} rows</p>
+                <p>Reconciled === 0: {data.filter(d => d.Reconciled === 0).length} rows</p>
+                <p>Reconciled {'>'}= 1: {data.filter(d => d.Reconciled >= 1).length} rows</p>
+                <p>Reconciled other: {data.filter(d => d.Reconciled !== 0 && d.Reconciled !== 1).length} rows</p>
+                <p>Unique values: [{Array.from(new Set(data.map(d => d.Reconciled))).sort().join(', ')}]</p>
+                <p>Sample (first 10): [{data.slice(0, 10).map(d => d.Reconciled).join(', ')}]</p>
+                <p className="mt-1 text-yellow-400">Filter: "{filterState.reconciledFilter}" → filteredData: {filteredData.length} rows</p>
+              </div>
+
               <div className="grid grid-cols-1 gap-6">
                 <div className="flex flex-wrap gap-4 items-center justify-between mb-2">
                   <h2 className="text-xl font-cinzel font-bold text-white">The Balance Scroll</h2>
