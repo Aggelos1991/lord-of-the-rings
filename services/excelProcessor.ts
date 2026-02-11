@@ -160,8 +160,21 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
 
             // Column X = index 23 (Reconciled: 1 or 0)
             const rawReconciled = row[23];
-            const reconciledVal = typeof rawReconciled === 'number' ? rawReconciled : parseInt(String(rawReconciled || '0'), 10);
-            const reconciled = isNaN(reconciledVal) ? 0 : reconciledVal;
+            // Debug: log first 5 values to console so we can see the format
+            if (processedRows.length < 5) {
+              console.log(`[DEBUG] Row ${i} Col X raw value:`, rawReconciled, `type: ${typeof rawReconciled}`);
+            }
+            let reconciled: number;
+            if (typeof rawReconciled === 'number') {
+              reconciled = rawReconciled;
+            } else {
+              const str = String(rawReconciled || '').trim().toLowerCase();
+              if (str === '1' || str === 'yes' || str === 'y' || str === 'true' || str === 'reconciled' || str === 'si' || str === 'sí') {
+                reconciled = 1;
+              } else {
+                reconciled = 0;
+              }
+            }
 
             // Column Y = index 24 (Alternative Document Date)
             const rawAltDocDate = row[24];
@@ -219,6 +232,12 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
                 Days_Overdue: daysOverdue,
             });
         }
+
+        // Debug: Reconciled summary
+        const recCount = processedRows.filter(r => r.Reconciled === 1).length;
+        const notRecCount = processedRows.filter(r => r.Reconciled === 0).length;
+        const otherRecCount = processedRows.filter(r => r.Reconciled !== 0 && r.Reconciled !== 1).length;
+        console.log(`[RECONCILED SUMMARY] Total: ${processedRows.length}, Reconciled(1): ${recCount}, Not Reconciled(0): ${notRecCount}, Other: ${otherRecCount}`);
 
         resolve(processedRows);
 
