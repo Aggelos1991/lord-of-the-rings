@@ -55,40 +55,40 @@ const EmailGenerator: React.FC<EmailGeneratorProps> = ({ data, vendorName }) => 
     ).join('\n');
 
     const prompt = lang === 'spanish'
-      ? `Genera un email profesional y formal en ESPAÑOL para enviar al proveedor "${targetVendor}" informándole que tenemos facturas pendientes de pago. El email debe ser cortés pero firme, solicitando la reconciliación o confirmación de los importes pendientes.
+      ? `Genera un email CORTO y directo en ESPAÑOL desde el departamento de Cuentas a Pagar al proveedor "${targetVendor}". Somos Cuentas a Pagar y necesitamos un estado de cuenta.
 
-Datos:
-- Total facturas: ${data.length}
+El email debe ser breve (máximo 5-6 líneas de texto), profesional y al grano. NO escribas un email largo.
+
+Datos de referencia:
+- Total facturas abiertas: ${data.length}
 - Importe total pendiente: €${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-- Facturas vencidas: ${overdueItems.length}
+${overdueItems.length > 0 ? `- Facturas vencidas: ${overdueItems.length}` : ''}
 
-Detalle de facturas:
-${invoiceLines}
+Estructura del email:
+1. Saludo breve
+2. Solicitar estado de cuenta actualizado para las facturas pendientes que aparecen en nuestros registros
+3. Mencionar brevemente el total pendiente y número de facturas
+4. Solicitar que envíen el estado de cuenta a la mayor brevedad
+5. Cierre breve con "Saludos cordiales" y "Departamento de Cuentas a Pagar"
 
-El email debe incluir:
-1. Saludo formal
-2. Mención de las facturas pendientes con el detalle
-3. Solicitud de confirmación o aclaración
-4. Cierre formal
+NO incluyas línea de asunto. NO incluyas lista detallada de facturas individuales. NO inventes datos. Sé CONCISO.`
+      : `Generate a SHORT and direct email in ENGLISH from the Accounts Payable department to vendor "${targetVendor}". We are Accounts Payable and we need a statement of account.
 
-NO incluyas línea de asunto, solo el cuerpo del email. No inventes datos adicionales.`
-      : `Generate a professional and formal email in ENGLISH to send to vendor "${targetVendor}" informing them that we have outstanding open invoices. The email should be polite but firm, requesting reconciliation or confirmation of the outstanding amounts.
+The email must be brief (maximum 5-6 lines of text), professional and to the point. Do NOT write a long email.
 
-Data:
-- Total invoices: ${data.length}
+Reference data:
+- Total open invoices: ${data.length}
 - Total outstanding amount: €${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-- Overdue invoices: ${overdueItems.length}
+${overdueItems.length > 0 ? `- Overdue invoices: ${overdueItems.length}` : ''}
 
-Invoice details:
-${invoiceLines}
+Email structure:
+1. Brief greeting
+2. Request an updated statement of account for the outstanding invoices showing on our records
+3. Briefly mention the total outstanding and number of invoices
+4. Request they send the statement at their earliest convenience
+5. Brief closing with "Kind regards" and "Accounts Payable Department"
 
-The email should include:
-1. Formal greeting
-2. Mention of outstanding invoices with details
-3. Request for confirmation or clarification
-4. Formal closing
-
-Do NOT include a subject line, only the email body. Do not invent additional data.`;
+Do NOT include a subject line. Do NOT include a detailed list of individual invoices. Do NOT invent data. Be CONCISE.`;
 
     try {
       const response = await fetch('https://api.anthropic.com/v1/messages', {

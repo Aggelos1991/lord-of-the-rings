@@ -133,44 +133,38 @@ const POTable: React.FC<POTableProps> = ({ poRecords, invoiceData, vendorName })
     const totalAmount = blockedInvoices.reduce((sum, d) => sum + d.Open_Amount, 0);
 
     const prompt = lang === 'spanish'
-      ? `Genera un email profesional e interno en ESPAÑOL para enviar a "${selectedPO.createdBy}" que es el responsable de la(s) Orden(es) de Compra. El email debe solicitar que desbloquee las facturas que están bloqueadas para pago.
+      ? `Genera un email CORTO e interno en ESPAÑOL desde Cuentas a Pagar para "${selectedPO.createdBy}" (responsable de PO).
 
-Datos del responsable PO:
-- Nombre: ${selectedPO.createdBy}
+El email debe ser breve (máximo 5-6 líneas), directo y al grano. NO escribas un email largo.
 
-Órdenes de Compra asociadas:
-${poLines}
+Datos:
+- ${blockedInvoices.length} factura(s) bloqueada(s), total: €${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+- PO(s) asociada(s): ${ownerPOs.map(po => po.poNumber).filter(Boolean).join(', ') || 'N/A'}
 
-Facturas BLOQUEADAS para pago (${blockedInvoices.length} facturas, total: €${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}):
-${invoiceLines}
+Estructura del email:
+1. "Estimado/a ${selectedPO.createdBy},"
+2. Informar que tiene facturas bloqueadas para pago asociadas a su(s) PO(s)
+3. Solicitar que por favor resuelva: proporcione el número de PO y la aprobación de certificación
+4. Mencionar el total bloqueado
+5. Cierre breve con "Saludos cordiales" y "Departamento de Cuentas a Pagar"
 
-El email debe incluir:
-1. Saludo formal: "Estimado/a ${selectedPO.createdBy}"
-2. Explicación de que hay facturas bloqueadas para pago asociadas a sus POs
-3. Detalle de las facturas bloqueadas con importes
-4. Solicitud clara de acción para desbloquear las facturas para que puedan ser pagadas
-5. Cierre formal
+NO incluyas línea de asunto. NO incluyas lista detallada de cada factura. NO inventes datos. Sé CONCISO.`
+      : `Generate a SHORT internal email in ENGLISH from Accounts Payable to "${selectedPO.createdBy}" (PO owner).
 
-NO incluyas línea de asunto, solo el cuerpo del email. No inventes datos adicionales. El tono debe ser profesional pero urgente.`
-      : `Generate a professional internal email in ENGLISH to send to "${selectedPO.createdBy}" who is the Purchase Order (PO) owner. The email should request that they unblock the invoices that are currently blocked for payment.
+The email must be brief (maximum 5-6 lines), direct and to the point. Do NOT write a long email.
 
-PO Owner details:
-- Name: ${selectedPO.createdBy}
+Data:
+- ${blockedInvoices.length} blocked invoice(s), total: €${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+- Associated PO(s): ${ownerPOs.map(po => po.poNumber).filter(Boolean).join(', ') || 'N/A'}
 
-Associated Purchase Orders:
-${poLines}
+Email structure:
+1. "Dear ${selectedPO.createdBy},"
+2. Inform them they have invoices blocked for payment associated with their PO(s)
+3. Request they please resolve: provide the PO number and certification approval
+4. Mention the total amount blocked
+5. Brief closing with "Kind regards" and "Accounts Payable Department"
 
-BLOCKED invoices pending unblock (${blockedInvoices.length} invoices, total: €${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}):
-${invoiceLines}
-
-The email should include:
-1. Formal greeting: "Dear ${selectedPO.createdBy}"
-2. Explanation that there are invoices blocked for payment associated with their POs
-3. Details of the blocked invoices with amounts
-4. Clear action request to unblock the invoices so they can be processed for payment
-5. Formal closing
-
-Do NOT include a subject line, only the email body. Do not invent additional data. The tone should be professional but convey urgency.`;
+Do NOT include a subject line. Do NOT include a detailed list of each invoice. Do NOT invent data. Be CONCISE.`;
 
     try {
       const response = await fetch('https://api.anthropic.com/v1/messages', {
