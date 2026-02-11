@@ -348,13 +348,6 @@ function App() {
                 fullDataAmount={data.reduce((a, b) => a + b.Open_Amount, 0)}
               />
 
-              {/* DEBUG BANNER - REMOVE AFTER CONFIRMING FIX */}
-              <div className="bg-yellow-900/50 border border-yellow-500 rounded-lg p-3 text-xs text-yellow-200 font-mono overflow-x-auto">
-                <p className="font-bold text-yellow-400 mb-1">🔍 Reconciled Debug ({data.length} rows)</p>
-                <p>Agreed=1: {data.filter(d => d.Reconciled >= 1).length} | Agreed=0: {data.filter(d => d.Reconciled === 0).length} | Col idx: {(window as any).__AGREED_DEBUG?.agreedColIdx ?? '?'}</p>
-                <p>Filter: "{filterState.reconciledFilter}" → showing {filteredData.length} rows</p>
-              </div>
-
               <div className="grid grid-cols-1 gap-6">
                 <div className="flex flex-wrap gap-4 items-center justify-between mb-2">
                   <h2 className="text-xl font-cinzel font-bold text-white">The Balance Scroll</h2>

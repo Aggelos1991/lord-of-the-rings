@@ -76,35 +76,13 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
         // Dynamically find "Agreeded" / "Reconciled" column from header row
         const headerRow = mainData[headerRowIndex];
         let agreedColIdx = -1;
-
-        // Build debug info: all headers with their indices
-        const headerDebug: string[] = [];
-        for (let c = 0; c < Math.min(headerRow?.length || 0, 80); c++) {
-          const val = headerRow[c];
-          if (val !== undefined && val !== null && String(val).trim() !== '') {
-            headerDebug.push(`[${c}]="${String(val).trim()}"`);
-          }
-        }
-
-        // Search for the column by header name
         for (let c = 0; c < (headerRow?.length || 0); c++) {
           const hdr = String(headerRow[c] || '').trim().toLowerCase();
-          if (hdr.includes('agreed') || hdr.includes('reconcil') || hdr.includes('agreedded') || hdr.includes('agre')) {
+          if (hdr.includes('agreed') || hdr.includes('reconcil') || hdr.includes('agre')) {
             agreedColIdx = c;
             break;
           }
         }
-
-        // Store debug info on the window for the debug banner to read
-        (window as any).__AGREED_DEBUG = {
-          headerRowIndex,
-          agreedColIdx,
-          headers: headerDebug.join(', '),
-          headerRowRaw: headerRow ? headerRow.slice(20, 30).map((v: any, i: number) => `[${20+i}]=${JSON.stringify(v)}`).join(', ') : 'N/A'
-        };
-
-        console.log(`[AGREED COL] Found at index: ${agreedColIdx}, header row: ${headerRowIndex}`);
-        console.log(`[HEADERS 20-29]`, headerRow ? headerRow.slice(20, 30) : 'N/A');
 
         // 5. Process Rows
         const processedRows: ProcessedInvoice[] = [];
@@ -264,14 +242,6 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
                 Days_Overdue: daysOverdue,
             });
         }
-
-        // Store reconciled debug info for UI banner
-        (window as any).__AGREED_DEBUG = {
-          ...(window as any).__AGREED_DEBUG,
-          totalRows: processedRows.length,
-          reconciled1: processedRows.filter(r => r.Reconciled >= 1).length,
-          reconciled0: processedRows.filter(r => r.Reconciled === 0).length,
-        };
 
         resolve(processedRows);
 
