@@ -237,7 +237,8 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
         const recCount = processedRows.filter(r => r.Reconciled === 1).length;
         const notRecCount = processedRows.filter(r => r.Reconciled === 0).length;
         const otherRecCount = processedRows.filter(r => r.Reconciled !== 0 && r.Reconciled !== 1).length;
-        console.log(`[RECONCILED SUMMARY] Total: ${processedRows.length}, Reconciled(1): ${recCount}, Not Reconciled(0): ${notRecCount}, Other: ${otherRecCount}`);
+        const uniqueRecValues = Array.from(new Set(processedRows.map(r => r.Reconciled)));
+        console.log(`[RECONCILED SUMMARY] Total: ${processedRows.length}, Reconciled(1): ${recCount}, Not Reconciled(0): ${notRecCount}, Other: ${otherRecCount}, Unique values:`, uniqueRecValues);
 
         resolve(processedRows);
 

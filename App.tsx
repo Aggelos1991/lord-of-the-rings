@@ -129,8 +129,8 @@ function App() {
       if (filterState.debitBalanceOnly && item.Open_Amount >= 0) return false;
 
       // Reconciled filter (Col X): 1 = Reconciled, 0 = Not Reconciled
-      if (filterState.reconciledFilter === 'Reconciled' && item.Reconciled !== 1) return false;
-      if (filterState.reconciledFilter === 'Not Reconciled' && item.Reconciled !== 0) return false;
+      if (filterState.reconciledFilter === 'Reconciled' && !(item.Reconciled >= 1)) return false;
+      if (filterState.reconciledFilter === 'Not Reconciled' && item.Reconciled >= 1) return false;
 
       return true;
     });
