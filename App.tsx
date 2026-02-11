@@ -344,8 +344,8 @@ function App() {
 
               <KPIGrid
                 data={filteredData}
-                fullDataCount={data.length}
-                fullDataAmount={data.reduce((a, b) => a + b.Open_Amount, 0)}
+                fullDataCount={filteredData.length}
+                fullDataAmount={filteredData.reduce((a, b) => a + b.Open_Amount, 0)}
               />
 
               <div className="grid grid-cols-1 gap-6">
