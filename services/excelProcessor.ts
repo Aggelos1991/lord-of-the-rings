@@ -185,19 +185,10 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
             // Hard-filter: only keep rows where AF, AH, AJ are all "Yes"
             if (colAF !== 'Yes' || colAH !== 'Yes' || colAJ !== 'Yes') { skip.flags++; continue; }
 
-            // Hard-filter: only keep rows where AY (col index 50) = 0
-            const ayIdx = 50;
-            const rawAY = row[ayIdx];
-            const ayVal = typeof rawAY === 'number' ? rawAY : parseFloat(String(rawAY || ''));
-            if (isNaN(ayVal) || ayVal !== 0) { skip.ay++; continue; }
-
             // Agreeded/Reconciled column (dynamically found from header)
             let reconciled = 0;
             if (agreedColIdx >= 0) {
               const rawReconciled = row[agreedColIdx];
-              if (processedRows.length < 5) {
-                console.log(`[DEBUG] Row ${i} Agreeded col[${agreedColIdx}] raw value:`, rawReconciled, `type: ${typeof rawReconciled}`);
-              }
               if (typeof rawReconciled === 'number') {
                 reconciled = rawReconciled;
               } else {
@@ -209,6 +200,13 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
                 }
               }
             }
+
+            // Hard-filter: only keep rows where AY (col index 50) = 0
+            // BUT skip this filter for reconciled rows (Agreeded=1) so they appear in data
+            const ayIdx = 50;
+            const rawAY = row[ayIdx];
+            const ayVal = typeof rawAY === 'number' ? rawAY : parseFloat(String(rawAY || ''));
+            if (reconciled !== 1 && (isNaN(ayVal) || ayVal !== 0)) { skip.ay++; continue; }
 
             // Column Y = index 24 (Alternative Document Date)
             const rawAltDocDate = row[24];
@@ -267,12 +265,13 @@ export const processExcelFile = async (file: File): Promise<ProcessedInvoice[]> 
             });
         }
 
-        // Debug: Reconciled summary
-        const recCount = processedRows.filter(r => r.Reconciled === 1).length;
-        const notRecCount = processedRows.filter(r => r.Reconciled === 0).length;
-        const otherRecCount = processedRows.filter(r => r.Reconciled !== 0 && r.Reconciled !== 1).length;
-        const uniqueRecValues = Array.from(new Set(processedRows.map(r => r.Reconciled)));
-        console.log(`[RECONCILED SUMMARY] Total: ${processedRows.length}, Reconciled(1): ${recCount}, Not Reconciled(0): ${notRecCount}, Other: ${otherRecCount}, Unique values:`, uniqueRecValues);
+        // Store reconciled debug info for UI banner
+        (window as any).__AGREED_DEBUG = {
+          ...(window as any).__AGREED_DEBUG,
+          totalRows: processedRows.length,
+          reconciled1: processedRows.filter(r => r.Reconciled >= 1).length,
+          reconciled0: processedRows.filter(r => r.Reconciled === 0).length,
+        };
 
         resolve(processedRows);
 

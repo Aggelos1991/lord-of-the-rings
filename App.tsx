@@ -348,15 +348,11 @@ function App() {
                 fullDataAmount={data.reduce((a, b) => a + b.Open_Amount, 0)}
               />
 
-              {/* DEBUG BANNER - REMOVE AFTER FIXING */}
+              {/* DEBUG BANNER - REMOVE AFTER CONFIRMING FIX */}
               <div className="bg-yellow-900/50 border border-yellow-500 rounded-lg p-3 text-xs text-yellow-200 font-mono overflow-x-auto">
-                <p className="font-bold text-yellow-400 mb-1">🔍 DEBUG: Reconciled Column (from ALL {data.length} rows)</p>
-                <p>Reconciled === 1: {data.filter(d => d.Reconciled === 1).length} | === 0: {data.filter(d => d.Reconciled === 0).length} | other: {data.filter(d => d.Reconciled !== 0 && d.Reconciled !== 1).length}</p>
-                <p>Unique values: [{Array.from(new Set(data.map(d => d.Reconciled))).sort().join(', ')}]</p>
-                <p>Sample first 10: [{data.slice(0, 10).map(d => d.Reconciled).join(', ')}]</p>
-                <p className="mt-1 text-yellow-400">Filter: "{filterState.reconciledFilter}" → filteredData: {filteredData.length} rows</p>
-                <p className="mt-1 text-cyan-300 break-all">Agreed col index: {(window as any).__AGREED_DEBUG?.agreedColIdx ?? 'N/A'} | Header row: {(window as any).__AGREED_DEBUG?.headerRowIndex ?? 'N/A'}</p>
-                <p className="text-cyan-300 break-all">Headers[20-29]: {(window as any).__AGREED_DEBUG?.headerRowRaw ?? 'N/A'}</p>
+                <p className="font-bold text-yellow-400 mb-1">🔍 Reconciled Debug ({data.length} rows)</p>
+                <p>Agreed=1: {data.filter(d => d.Reconciled >= 1).length} | Agreed=0: {data.filter(d => d.Reconciled === 0).length} | Col idx: {(window as any).__AGREED_DEBUG?.agreedColIdx ?? '?'}</p>
+                <p>Filter: "{filterState.reconciledFilter}" → showing {filteredData.length} rows</p>
               </div>
 
               <div className="grid grid-cols-1 gap-6">
