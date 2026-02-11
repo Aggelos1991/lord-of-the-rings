@@ -1,12 +1,13 @@
 import React from 'react';
 import { FilterState } from '../types';
-import { Filter, Globe, AlertCircle, FileText, Search, DollarSign, Archive, TrendingDown, RotateCcw, CheckCircle } from 'lucide-react';
+import { Filter, Globe, AlertCircle, FileText, Search, DollarSign, Archive, TrendingDown, RotateCcw, CheckCircle, Building } from 'lucide-react';
 
 interface FiltersProps {
   filterState: FilterState;
   setFilterState: React.Dispatch<React.SetStateAction<FilterState>>;
   availableVendorTypes: string[];
   availableBFPStatus: string[];
+  availableEntities: string[];
 }
 
 const Filters: React.FC<FiltersProps> = ({
@@ -14,6 +15,7 @@ const Filters: React.FC<FiltersProps> = ({
   setFilterState,
   availableVendorTypes,
   availableBFPStatus,
+  availableEntities,
 }) => {
 
   return (
@@ -42,6 +44,7 @@ const Filters: React.FC<FiltersProps> = ({
             selectedVendor: null,
             selectedVendorTypes: availableVendorTypes,
             selectedBFPStatus: availableBFPStatus,
+            selectedEntities: availableEntities,
           }))}
           className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-gold-500 transition-colors bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 hover:border-gold-600"
         >
@@ -89,6 +92,32 @@ const Filters: React.FC<FiltersProps> = ({
             >
               {opt}
             </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Entity Filter (Col C) */}
+      <div className="space-y-2">
+        <label className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+          <Building size={16} /> Entity
+        </label>
+        <div className="h-28 overflow-y-auto bg-slate-900 border border-slate-700 rounded p-2 space-y-1 custom-scrollbar">
+          {availableEntities.map(ent => (
+            <label key={ent} className="flex items-center gap-2 text-xs text-slate-400 hover:text-white cursor-pointer">
+              <input
+                type="checkbox"
+                checked={filterState.selectedEntities.includes(ent)}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setFilterState(prev => ({...prev, selectedEntities: [...prev.selectedEntities, ent]}));
+                  } else {
+                    setFilterState(prev => ({...prev, selectedEntities: prev.selectedEntities.filter(x => x !== ent)}));
+                  }
+                }}
+                className="rounded border-slate-600 text-gold-600 bg-slate-900"
+              />
+              {ent}
+            </label>
           ))}
         </div>
       </div>

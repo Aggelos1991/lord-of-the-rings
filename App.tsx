@@ -35,6 +35,7 @@ function App() {
     altDocDateYear: 'All',
     debitBalanceOnly: false,
     reconciledFilter: 'All',
+    selectedEntities: [],
   });
 
   // ========== AVAILABLE FILTER OPTIONS ========== //
@@ -46,6 +47,10 @@ function App() {
     () => Array.from(new Set(data.map(d => d.Col_BS))).sort(),
     [data]
   );
+  const availableEntities = useMemo(
+    () => Array.from(new Set(data.map(d => d.Entity).filter(e => e && e.trim()))).sort(),
+    [data]
+  );
 
   useEffect(() => {
     if (data.length > 0) {
@@ -53,9 +58,10 @@ function App() {
         ...prev,
         selectedVendorTypes: availableVendorTypes,
         selectedBFPStatus: availableBFPStatus,
+        selectedEntities: availableEntities,
       }));
     }
-  }, [data, availableVendorTypes, availableBFPStatus]);
+  }, [data, availableVendorTypes, availableBFPStatus, availableEntities]);
 
   // ========== UPLOAD MASTER FILE ========== //
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,6 +121,7 @@ function App() {
 
       if (!filterState.selectedVendorTypes.includes(item.Vendor_Type)) return false;
       if (!filterState.selectedBFPStatus.includes(item.Col_BS)) return false;
+      if (filterState.selectedEntities.length > 0 && !filterState.selectedEntities.includes(item.Entity)) return false;
 
       // Alternative Document Date year filter (Col Y)
       if (filterState.altDocDateYear !== 'All') {
@@ -313,6 +320,7 @@ function App() {
             setFilterState={setFilterState}
             availableVendorTypes={availableVendorTypes}
             availableBFPStatus={availableBFPStatus}
+            availableEntities={availableEntities}
           />
         )}
 

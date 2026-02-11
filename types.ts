@@ -51,6 +51,7 @@ export interface FilterState {
   altDocDateYear: 'All' | '2025' | '2026' | 'Old'; // Filter by Alternative Document Date year (Col Y)
   debitBalanceOnly: boolean; // Show only vendors with negative Open_Amount (Col G)
   reconciledFilter: 'All' | 'Reconciled' | 'Not Reconciled'; // Column X: 1 or 0
+  selectedEntities: string[]; // Entity filter (Col C)
 }
 
 export interface POUserRecord {
